@@ -100,12 +100,12 @@ class ExportBundle:
 BASELINE_ASSUMPTION = AssumptionSet(
     key="baseline",
     label="Baseline",
-    notes="E from axis, G from shoulder face, I from face, groove drawn as a real shallow V-mark.",
+    notes="E from axis, G from shoulder face, I from face, do-not-pass mark drawn as a scribed line by default.",
     angle_e="from_axis",
     angle_g="from_shoulder_face",
     angle_i="from_face",
-    groove_mode="v-groove",
-    draw_physical_groove=True,
+    groove_mode="line",
+    draw_physical_groove=False,
 )
 
 
@@ -118,8 +118,8 @@ HARNESS_ASSUMPTIONS = {
         angle_e="included_angle",
         angle_g="from_shoulder_face",
         angle_i="from_face",
-        groove_mode="v-groove",
-        draw_physical_groove=True,
+        groove_mode="line",
+        draw_physical_groove=False,
     ),
     "g-from-axis": AssumptionSet(
         key="g-from-axis",
@@ -128,8 +128,8 @@ HARNESS_ASSUMPTIONS = {
         angle_e="from_axis",
         angle_g="from_axis",
         angle_i="from_face",
-        groove_mode="v-groove",
-        draw_physical_groove=True,
+        groove_mode="line",
+        draw_physical_groove=False,
     ),
     "i-from-axis": AssumptionSet(
         key="i-from-axis",
@@ -138,8 +138,8 @@ HARNESS_ASSUMPTIONS = {
         angle_e="from_axis",
         angle_g="from_shoulder_face",
         angle_i="from_axis",
-        groove_mode="v-groove",
-        draw_physical_groove=True,
+        groove_mode="line",
+        draw_physical_groove=False,
     ),
     "groove-line-only": AssumptionSet(
         key="groove-line-only",
@@ -150,6 +150,16 @@ HARNESS_ASSUMPTIONS = {
         angle_i="from_face",
         groove_mode="line",
         draw_physical_groove=False,
+    ),
+    "groove-v-groove": AssumptionSet(
+        key="groove-v-groove",
+        label="Groove as shallow V-groove",
+        notes="Models the do-not-pass mark as a shallow machined V-groove for comparison/export testing.",
+        angle_e="from_axis",
+        angle_g="from_shoulder_face",
+        angle_i="from_face",
+        groove_mode="v-groove",
+        draw_physical_groove=True,
     ),
 }
 

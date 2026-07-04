@@ -48,6 +48,7 @@ export type SpindleModel = {
   rootDiameter: number;
   tipDiameter: number;
   totalLength: number;
+  collarRise: number;
   points: [number, number][];
 };
 
@@ -62,6 +63,7 @@ export type RammerModel = {
   boreDepth: number;
   boreDiameter: number;
   noseAngle: number;
+  taperHeight: number;
   hasTaper: boolean;
   points: [number, number][];
 };

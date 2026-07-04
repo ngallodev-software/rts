@@ -36,6 +36,16 @@ LAYER_MARKS = "MARKS"
 LAYER_NOTES = "NOTES"
 LAYER_TABLE = "TABLE"
 
+# Text/dimension sizes are intentionally conservative for a machinist-readable
+# combined sheet. Keep these in drawing units so small 0.75 in tooling is not
+# overwhelmed by the annotations, but avoid the very small text from the first
+# prototype.
+TITLE_TEXT_HEIGHT = 0.105
+NOTE_TEXT_HEIGHT = 0.09
+TABLE_TEXT_HEIGHT = 0.078
+DIM_TEXT_HEIGHT = 0.10
+LEADER_TEXT_HEIGHT = 0.085
+
 
 def format_value(value: float) -> str:
     text = f"{value:.4f}"
@@ -96,7 +106,7 @@ def _normalize_dimstyles(doc: ezdxf.EzDxfDocument) -> None:
             style.dxf.dimzin = 8
             style.dxf.dimdsep = ord(".")
             style.dxf.dimasz = 0.175
-            style.dxf.dimtxt = 0.1
+            style.dxf.dimtxt = DIM_TEXT_HEIGHT
 
 
 def _translate_points(points: Iterable[tuple[float, float]], dx: float, dy: float) -> list[tuple[float, float]]:
@@ -130,7 +140,7 @@ def _render_linear_dim(
         location=location,
         angle=angle,
         dxfattribs={"layer": LAYER_DIM},
-        override={"dimtad": 1, "dimtxt": 0.1, "dimlfac": 1.0, "dimdec": 3, "dimzin": 8},
+        override={"dimtad": 1, "dimtxt": DIM_TEXT_HEIGHT, "dimlfac": 1.0, "dimdec": 3, "dimzin": 8},
     )
     dim.render()
 
@@ -147,16 +157,16 @@ def _render_angular_dim(
         line2=line2,
         location=location,
         dxfattribs={"layer": LAYER_DIM},
-        override={"dimtad": 1, "dimtxt": 0.1, "dimlfac": 1.0, "dimdec": 3, "dimzin": 8},
+        override={"dimtad": 1, "dimtxt": DIM_TEXT_HEIGHT, "dimlfac": 1.0, "dimdec": 3, "dimzin": 8},
     )
     dim.render()
 
 
 def _add_title(msp: ezdxf.layouts.Modelspace, text: str, x: float, y: float) -> None:
-    msp.add_text(text, dxfattribs={"height": 0.08, "layer": LAYER_TITLE}).set_placement((x, y))
+    msp.add_text(text, dxfattribs={"height": TITLE_TEXT_HEIGHT, "layer": LAYER_TITLE}).set_placement((x, y))
 
 
-def _add_note_line(msp: ezdxf.layouts.Modelspace, text: str, x: float, y: float, height: float = 0.075) -> None:
+def _add_note_line(msp: ezdxf.layouts.Modelspace, text: str, x: float, y: float, height: float = NOTE_TEXT_HEIGHT) -> None:
     msp.add_text(text, dxfattribs={"height": height, "layer": LAYER_NOTES}).set_placement((x, y))
 
 
@@ -165,13 +175,33 @@ def _add_multiline_notes(
     lines: list[str],
     x: float,
     y: float,
-    height: float = 0.075,
-    line_spacing: float = 0.11,
+    height: float = NOTE_TEXT_HEIGHT,
+    line_spacing: float = 0.13,
 ) -> None:
     cursor = y
     for line in lines:
         _add_note_line(msp, line, x, cursor, height)
         cursor -= line_spacing
+
+
+def _add_leader_callout(
+    msp: ezdxf.layouts.Modelspace,
+    text: str,
+    target: tuple[float, float],
+    text_position: tuple[float, float],
+    *,
+    height: float = LEADER_TEXT_HEIGHT,
+) -> None:
+    """Add a simple machinist-friendly leader line with nearby text.
+
+    This intentionally uses primitive LINE/TEXT entities instead of richer
+    MLEADER objects so Fusion 360, SolidWorks, Solid Edge, and FreeCAD are
+    more likely to import the annotation predictably.
+    """
+    tx, ty = text_position
+    landing = (tx - 0.08 if tx >= target[0] else tx + 0.08, ty)
+    msp.add_line(target, landing, dxfattribs={"layer": LAYER_DIM})
+    msp.add_text(text, dxfattribs={"height": height, "layer": LAYER_TEXT}).set_placement((tx, ty))
 
 
 def _format_diameter(value: float) -> str:
@@ -210,15 +240,23 @@ def _spindle_outline_points(spindle: SpindleModel) -> list[tuple[float, float]]:
 
 
 def _rammer_outline_points(rammer: RammerModel) -> list[tuple[float, float]]:
+    """Return the 2D rammer profile in the model coordinate convention.
+
+    y=0 is the handle/top end. y=overall_length is the working/bore-opening
+    end. The full-depth A rammer taper belongs at the working end and
+    terminates at the bore opening, matching the original RTS art and the
+    current manufacturing interpretation.
+    """
     half_outer = rammer.outer_diameter / 2
     if rammer.has_taper and rammer.taper_height > 0:
+        taper_start = max(rammer.overall_length - rammer.taper_height, 0.0)
         return [
-            (-rammer.bore_diameter / 2, 0.0),
-            (rammer.bore_diameter / 2, 0.0),
-            (half_outer, rammer.taper_height),
-            (half_outer, rammer.overall_length),
-            (-half_outer, rammer.overall_length),
-            (-half_outer, rammer.taper_height),
+            (-half_outer, 0.0),
+            (half_outer, 0.0),
+            (half_outer, taper_start),
+            (rammer.bore_diameter / 2, rammer.overall_length),
+            (-rammer.bore_diameter / 2, rammer.overall_length),
+            (-half_outer, taper_start),
         ]
     return [
         (-half_outer, 0.0),
@@ -319,48 +357,94 @@ def _draw_spindle(
     if not compatibility_mode:
         _add_centerline(msp, origin_x, max_y + 0.35, min_y - 0.35)
     if include_titles:
-        _add_title(msp, title, min_x, max_y + 0.7)
+        _add_title(msp, title, min_x, max_y + 0.75)
 
     if not include_dimensions:
         return
 
-    _render_linear_dim(msp, (min_x, max_y), (max_x, max_y), (origin_x, max_y + 0.45), angle=0)
-    _render_linear_dim(msp, (max_x, max_y), (max_x, min_y), (max_x + 0.45, (max_y + min_y) / 2), angle=90)
+    straight_height = max(spindle.collar_height - spindle.collar_rise, 0.0)
+    tip_y = origin_y
+    root_y = origin_y - spindle.spindle_length
+    collar_taper_end_y = origin_y - (spindle.spindle_length + spindle.collar_rise)
+    base_y = origin_y - spindle.total_length
+    spindle_mid_y = (tip_y + root_y) / 2
+    collar_mid_y = (root_y + base_y) / 2
+    collar_straight_mid_y = (collar_taper_end_y + base_y) / 2 if straight_height > 0 else collar_mid_y
+
+    # Length dimensions. Diameter dimensions are leader callouts below so they
+    # do not sit on top of the profile or get swapped between spindle stations.
     _render_linear_dim(
         msp,
-        (origin_x + spindle.root_diameter / 2, origin_y - spindle.collar_height),
-        (origin_x + spindle.tip_diameter / 2, origin_y - spindle.total_length),
-        (origin_x + spindle.root_diameter / 2 + 0.45, origin_y - spindle.total_length / 2),
+        (max_x, tip_y),
+        (max_x, base_y),
+        (max_x + 0.55, (tip_y + base_y) / 2),
         angle=90,
     )
     _render_linear_dim(
         msp,
-        (origin_x + spindle.root_diameter / 2, origin_y - spindle.collar_height),
-        (origin_x - spindle.root_diameter / 2, origin_y - spindle.collar_height),
-        (origin_x, origin_y - spindle.collar_height - 0.4),
-        angle=0,
+        (origin_x + spindle.root_diameter / 2, tip_y),
+        (origin_x + spindle.root_diameter / 2, root_y),
+        (origin_x + spindle.root_diameter / 2 + 0.95, spindle_mid_y),
+        angle=90,
     )
     _render_linear_dim(
         msp,
-        (origin_x + spindle.tip_diameter / 2, origin_y - spindle.total_length),
-        (origin_x - spindle.tip_diameter / 2, origin_y - spindle.total_length),
-        (origin_x, origin_y - spindle.total_length - 0.45),
-        angle=0,
+        (min_x, root_y),
+        (min_x, base_y),
+        (min_x - 0.55, collar_mid_y),
+        angle=90,
     )
+    if spindle.collar_rise > 0:
+        _render_linear_dim(
+            msp,
+            (max_x, root_y),
+            (max_x, collar_taper_end_y),
+            (max_x + 0.28, (root_y + collar_taper_end_y) / 2),
+            angle=90,
+        )
+
+    _add_leader_callout(
+        msp,
+        f"TIP OD {_format_diameter(spindle.tip_diameter)}",
+        (origin_x + spindle.tip_diameter / 2, tip_y),
+        (max_x + 0.9, tip_y + 0.18),
+    )
+    _add_leader_callout(
+        msp,
+        f"ROOT OD {_format_diameter(spindle.root_diameter)}",
+        (origin_x + spindle.root_diameter / 2, root_y),
+        (max_x + 0.9, root_y + 0.12),
+    )
+    _add_leader_callout(
+        msp,
+        f"COLLAR OD {_format_diameter(spindle.tube_diameter)}",
+        (origin_x + spindle.tube_diameter / 2, collar_straight_mid_y),
+        (max_x + 0.9, collar_straight_mid_y - 0.05),
+    )
+    _add_leader_callout(
+        msp,
+        f"SPINDLE TAPER {_format_length(_spindle_taper_per_side(spindle))} DEG/SIDE",
+        (origin_x + (spindle.root_diameter + spindle.tip_diameter) / 4, spindle_mid_y),
+        (max_x + 0.9, spindle_mid_y - 0.2),
+    )
+    if spindle.collar_rise > 0:
+        _add_leader_callout(
+            msp,
+            f"COLLAR TAPER {_format_length(_collar_taper_from_shoulder_face(spindle))} DEG FROM SHOULDER FACE",
+            (origin_x + (spindle.tube_diameter + spindle.root_diameter) / 4, (root_y + collar_taper_end_y) / 2),
+            (max_x + 0.9, (root_y + collar_taper_end_y) / 2 - 0.2),
+        )
 
     notes = [
         "PART 1 - SPINDLE / CORE FORMER",
-        f"COLLAR OD {_format_diameter(spindle.tube_diameter)}",
         f"COLLAR HEIGHT {_format_length(spindle.collar_height)}",
-        f"ROOT OD {_format_diameter(spindle.root_diameter)}",
-        f"TIP OD {_format_diameter(spindle.tip_diameter)}",
+        f"COLLAR TAPER AXIAL HEIGHT {_format_length(spindle.collar_rise)}",
         f"SPINDLE LENGTH {_format_length(spindle.spindle_length)}",
         f"OVERALL LENGTH {_format_length(spindle.total_length)}",
-        f"SPINDLE TAPER: {_format_length(_spindle_taper_per_side(spindle))} DEG PER SIDE",
-        f"COLLAR TAPER: {_format_length(_collar_taper_from_shoulder_face(spindle))} DEG FROM SHOULDER FACE",
-        "SPINDLE SHOWN COLLAR END DOWN / WORKING END UP",
+        "SPINDLE SHOWN TIP UP / COLLAR BASE DOWN",
+        "LEGACY RTS ORIENTATION; OFFSET LOWER ON COMBINED SHEET",
     ]
-    _add_multiline_notes(msp, notes, max_x + 0.5, max_y - 0.1)
+    _add_multiline_notes(msp, notes, max_x + 2.1, max_y - 0.1, height=NOTE_TEXT_HEIGHT, line_spacing=0.14)
 
 
 def _draw_rammer(
@@ -390,49 +474,55 @@ def _draw_rammer(
             dxfattribs={"layer": LAYER_MARKS},
         )
     if include_titles:
-        _add_title(msp, title, min_x, max_y + 0.7)
+        _add_title(msp, title, min_x, max_y + 0.75)
 
     if not include_dimensions:
         return
 
+    top_y = origin_y
+    working_y = origin_y - rammer.overall_length
+    head_y = origin_y - rammer.head_length
+    groove_y = origin_y - rammer.groove_from_top
+
     _render_linear_dim(msp, (min_x, max_y), (max_x, max_y), (origin_x, max_y + 0.45), angle=0)
-    _render_linear_dim(msp, (max_x, max_y), (max_x, min_y), (max_x + 0.45, (max_y + min_y) / 2), angle=90)
+    _render_linear_dim(msp, (max_x, max_y), (max_x, min_y), (max_x + 0.55, (max_y + min_y) / 2), angle=90)
     _render_linear_dim(
         msp,
-        (origin_x + rammer.outer_diameter / 2, origin_y),
-        (origin_x + rammer.outer_diameter / 2, origin_y - rammer.head_length),
-        (origin_x + rammer.outer_diameter / 2 + 0.6, origin_y - rammer.head_length / 2),
+        (origin_x + rammer.outer_diameter / 2, top_y),
+        (origin_x + rammer.outer_diameter / 2, head_y),
+        (origin_x + rammer.outer_diameter / 2 + 0.68, (top_y + head_y) / 2),
         angle=90,
     )
-    _render_linear_dim(
-        msp,
-        (origin_x + rammer.outer_diameter / 2, origin_y),
-        (origin_x + rammer.outer_diameter / 2, origin_y - rammer.groove_from_top),
-        (origin_x - rammer.outer_diameter / 2 - 0.6, origin_y - rammer.groove_from_top / 2),
-        angle=90,
-    )
+    if abs(rammer.groove_from_top - rammer.head_length) > 1e-6:
+        _render_linear_dim(
+            msp,
+            (origin_x + rammer.outer_diameter / 2, top_y),
+            (origin_x + rammer.outer_diameter / 2, groove_y),
+            (origin_x - rammer.outer_diameter / 2 - 0.68, (top_y + groove_y) / 2),
+            angle=90,
+        )
 
     if rammer.bore_depth > 0 and rammer.bore_diameter > 0:
         _render_linear_dim(
             msp,
-            (origin_x - rammer.bore_diameter / 2, origin_y - rammer.overall_length),
-            (origin_x + rammer.bore_diameter / 2, origin_y - rammer.overall_length),
-            (origin_x, origin_y - rammer.overall_length - 0.45),
+            (origin_x - rammer.bore_diameter / 2, working_y),
+            (origin_x + rammer.bore_diameter / 2, working_y),
+            (origin_x, working_y - 0.45),
             angle=0,
         )
         _render_linear_dim(
             msp,
-            (origin_x + rammer.bore_diameter / 2, origin_y - rammer.overall_length),
+            (origin_x + rammer.bore_diameter / 2, working_y),
             (origin_x + rammer.bore_diameter / 2, origin_y - (rammer.overall_length - rammer.bore_depth)),
-            (origin_x + rammer.bore_diameter / 2 + 0.55, origin_y - (rammer.overall_length - rammer.bore_depth / 2)),
+            (origin_x + rammer.bore_diameter / 2 + 0.65, origin_y - (rammer.overall_length - rammer.bore_depth / 2)),
             angle=90,
         )
 
     notes = [
         f"OD {_format_diameter(rammer.outer_diameter)}",
         f"OAL {_format_length(rammer.overall_length)}",
-        f"DO-NOT-PASS MARK {_format_length(rammer.groove_from_top)} FROM TOP FACE",
-        "RAMMER SHOWN WORKING END DOWN",
+        f"DO-NOT-PASS MARK {_format_length(rammer.groove_from_top)} FROM HANDLE/TOP FACE",
+        "RAMMER SHOWN HANDLE END UP / WORKING END DOWN",
     ]
     if rammer.bore_depth > 0 and rammer.bore_diameter > 0:
         notes.extend(
@@ -449,7 +539,17 @@ def _draw_rammer(
                 "NO FLAT LAND AT BORE OPENING",
             ]
         )
-    _add_multiline_notes(msp, [f"PART - {rammer.label.upper()}"] + notes, max_x + 0.45, max_y - 0.1)
+        taper_target = (
+            origin_x + (rammer.outer_diameter + rammer.bore_diameter) / 4,
+            origin_y - (rammer.overall_length - rammer.taper_height / 2),
+        )
+        _add_leader_callout(
+            msp,
+            f"I={_format_length(rammer.nose_angle)} DEG TO {_format_diameter(rammer.bore_diameter)} BORE",
+            taper_target,
+            (max_x + 0.85, origin_y - rammer.overall_length + rammer.taper_height + 0.1),
+        )
+    _add_multiline_notes(msp, [f"PART - {rammer.label.upper()}"] + notes, max_x + 1.15, max_y - 0.1, height=NOTE_TEXT_HEIGHT, line_spacing=0.14)
 
 
 def _build_spindle_solid(spindle: SpindleModel) -> cq.Workplane:
@@ -741,15 +841,19 @@ def _write_combined_dxf(
     msp = doc.modelspace()
     cursor = 0.0
     top = 0.0
-    spacing = model.params.a * (4.5 if include_dimensions else 2.5)
+    spacing = model.params.a * (8.0 if include_dimensions else 2.5)
     compatibility_mode = (not include_dimensions) or dxf_version == "R12"
     include_titles = include_dimensions
+
+    longest_rammer = max((rammer.overall_length for rammer in model.rammers), default=model.spindle.total_length)
+    spindle_drop = max(longest_rammer - model.spindle.total_length, 0.0) + (model.params.a * 0.5 if include_dimensions else model.params.a * 0.25)
+    spindle_top = top - spindle_drop
 
     _draw_spindle(
         msp,
         model.spindle,
         cursor,
-        top,
+        spindle_top,
         f"{preset_label} - spindle",
         include_dimensions,
         include_titles,
@@ -782,20 +886,21 @@ def _write_combined_dxf(
             "ALL DIAMETERS AND BORES CONCENTRIC TO CENTERLINE.",
             "ALL RAMMER BORES ARE STRAIGHT CYLINDRICAL AND OPEN FROM WORKING END.",
             "BORE DEPTHS ARE MEASURED FROM WORKING END.",
-            "RAMMERS ARE SHOWN WORKING END DOWN.",
-            "SPINDLE IS SHOWN COLLAR END DOWN.",
-            f"DO-NOT-PASS MARK LOCATED {_format_length(model.head_length)} FROM TOP FACE OF EACH RAMMER.",
+            "RAMMERS ARE SHOWN HANDLE END UP / WORKING END DOWN.",
+            "SPINDLE SHOWN TIP UP / COLLAR BASE DOWN; OFFSET LOWER TO MATCH ORIGINAL ART.",
+            "FULL-DEPTH A RAMMER TAPER IS AT WORKING/BORE-OPENING END.",
+            f"DO-NOT-PASS MARK LOCATED {_format_length(model.head_length)} FROM HANDLE/TOP FACE OF EACH RAMMER.",
             "SCRIBE DO-NOT-PASS LINE 360 DEG AROUND EACH RAMMER.",
             "BREAK ALL SHARP EDGES.",
             "MATERIAL: SPECIFY",
             "FINISH: SPECIFY",
             "UNLESS OTHERWISE SPECIFIED: ADD TOLERANCE.",
         ]
-        _add_multiline_notes(msp, overview_title, notes_x, notes_y, height=0.085, line_spacing=0.13)
+        _add_multiline_notes(msp, overview_title, notes_x, notes_y, height=NOTE_TEXT_HEIGHT, line_spacing=0.14)
 
-        table_top = notes_y - 1.8
-        row_height = 0.22
-        col_widths = [0.5, 2.0, 1.1, 0.95, 1.2, 1.15, 2.4]
+        table_top = notes_y - 2.05
+        row_height = 0.25
+        col_widths = [0.55, 2.25, 1.15, 1.0, 1.25, 1.2, 3.45]
         headers = ["P", "NAME", "OD", "OAL", "BORE OD", "BORE DP", "NOTES"]
         rows = [
             [
@@ -805,7 +910,7 @@ def _write_combined_dxf(
                 _format_length(model.spindle.total_length),
                 "-",
                 "-",
-                f"ROOT {_format_diameter(model.spindle.root_diameter)} TIP {_format_diameter(model.spindle.tip_diameter)}",
+                f"ROOT {_format_diameter(model.spindle.root_diameter)} TIP {_format_diameter(model.spindle.tip_diameter)} F {_format_length(model.spindle.collar_height)}",
             ]
         ]
         for index, rammer in enumerate(model.rammers, start=2):
@@ -845,11 +950,11 @@ def _write_combined_dxf(
             cx += width
             running_xs.append(cx + 0.05)
         for col_index, header in enumerate(headers):
-            _add_note_line(msp, header, running_xs[col_index], y - 0.16, 0.075)
+            _add_note_line(msp, header, running_xs[col_index], y - 0.17, TABLE_TEXT_HEIGHT)
         for row_index, row in enumerate(rows, start=1):
             yy = y - row_height * row_index - 0.16
             for col_index, cell in enumerate(row):
-                _add_note_line(msp, cell, running_xs[col_index], yy, 0.07)
+                _add_note_line(msp, cell, running_xs[col_index], yy, TABLE_TEXT_HEIGHT)
 
     zoom.extents(msp, factor=1.05)
     _update_header_extents(doc, msp)

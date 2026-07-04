@@ -6,3 +6,5 @@ exports/
 cadquery_test.step
 cadquery_test.stl
 ezdxf_test.dxf
+rts*.md
+*.zip

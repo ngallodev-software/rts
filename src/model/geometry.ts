@@ -23,12 +23,10 @@ export function convertParams(params: ToolParams, nextUnit: Unit): ToolParams {
 }
 
 function normalizeAngle(angle: number, mode: AssumptionSet["angleE" | "angleG" | "angleI"]) {
-  switch (mode) {
-    case "included_angle":
-      return angle / 2;
-    default:
-      return angle;
+  if (mode === "included_angle") {
+    return angle / 2;
   }
+  return angle;
 }
 
 function tanDeg(value: number) {
@@ -45,10 +43,11 @@ function collarRise(params: ToolParams, assumption: AssumptionSet) {
     return 0;
   }
   const angle = normalizeAngle(params.g, assumption.angleG);
+  const radialRun = (params.a - params.d) / 2;
   if (assumption.angleG === "from_axis") {
-    return ((params.a - params.d) / 2) / Math.max(tanDeg(90 - angle), 0.0001);
+    return radialRun / Math.max(tanDeg(90 - angle), 0.0001);
   }
-  return ((params.a - params.d) / 2) * tanDeg(angle);
+  return radialRun * tanDeg(angle);
 }
 
 function buildSpindle(params: ToolParams, assumption: AssumptionSet): SpindleModel {
@@ -63,6 +62,7 @@ function buildSpindle(params: ToolParams, assumption: AssumptionSet): SpindleMod
     rootDiameter: params.d,
     tipDiameter: d2,
     totalLength: params.c + params.f,
+    collarRise: rise,
     points: [
       [params.a / 2, 0],
       [params.a / 2, shoulderY],
@@ -76,21 +76,32 @@ function buildSpindle(params: ToolParams, assumption: AssumptionSet): SpindleMod
   };
 }
 
-function firstRammerNoseStartX(params: ToolParams, assumption: AssumptionSet) {
+export function spindleTipUpPoints(spindle: SpindleModel): [number, number][] {
+  const straightCollarHeight = Math.max(spindle.collarHeight - spindle.collarRise, 0);
+  return [
+    [-spindle.tipDiameter / 2, 0],
+    [spindle.tipDiameter / 2, 0],
+    [spindle.rootDiameter / 2, spindle.spindleLength],
+    [spindle.tubeDiameter / 2, spindle.totalLength - straightCollarHeight],
+    [spindle.tubeDiameter / 2, spindle.totalLength],
+    [-spindle.tubeDiameter / 2, spindle.totalLength],
+    [-spindle.tubeDiameter / 2, spindle.totalLength - straightCollarHeight],
+    [-spindle.rootDiameter / 2, spindle.spindleLength],
+  ];
+}
+
+function firstRammerTaperHeight(params: ToolParams, assumption: AssumptionSet) {
   const noseAngle = normalizeAngle(params.i, assumption.angleI);
   if (params.i === 0 || noseAngle === 0) {
-    return params.a / 2;
+    return 0;
   }
 
+  const radialRun = (params.a - params.d) / 2;
   if (assumption.angleI === "from_axis") {
-    const run = (params.a - params.d) / 2;
-    const rise = run * tanDeg(noseAngle);
-    return Math.max((params.a / 2) - rise, params.d / 2);
+    return Math.max(radialRun / Math.max(tanDeg(noseAngle), 0.0001), 0);
   }
 
-  const run = (params.a - params.d) / 2;
-  const rise = run / Math.max(tanDeg(noseAngle), 0.0001);
-  return Math.max((params.a / 2) - rise, params.d / 2);
+  return Math.max(radialRun * tanDeg(noseAngle), 0);
 }
 
 function addGroove(points: [number, number][], outerRadius: number, grooveY: number) {
@@ -124,21 +135,25 @@ function buildRammer(
   noseAngle = 0,
 ): RammerModel {
   const halfOuter = outerDiameter / 2;
-  const grooveY = grooveFromTop;
+  let taperHeight = 0;
   let points: [number, number][];
 
-  if (role === "fullDepth" && noseAngle > 0) {
-    const startY = firstRammerNoseStartX(
-      { a: outerDiameter, b: 0, c: 0, d: boreDiameter, e: 0, f: 0, g: 0, h: 0, i: noseAngle },
-      assumption,
+  if (role === "fullDepth" && noseAngle > 0 && boreDiameter > 0) {
+    taperHeight = Math.min(
+      firstRammerTaperHeight(
+        { a: outerDiameter, b: overallLength, c: boreDepth, d: boreDiameter, e: 0, f: 0, g: 0, h: 0, i: noseAngle },
+        assumption,
+      ),
+      Math.max(overallLength * 0.5, 0),
     );
+    const bodyEnd = overallLength - taperHeight;
     points = [
       [-halfOuter, 0],
       [halfOuter, 0],
-      [halfOuter, overallLength - startY],
+      [halfOuter, bodyEnd],
       [boreDiameter / 2, overallLength],
       [-boreDiameter / 2, overallLength],
-      [-halfOuter, overallLength - startY],
+      [-halfOuter, bodyEnd],
     ];
   } else {
     points = [
@@ -149,8 +164,8 @@ function buildRammer(
     ];
   }
 
-  if (assumption.drawPhysicalGroove) {
-    points = addGroove(points, halfOuter, grooveY);
+  if (assumption.drawPhysicalGroove && assumption.grooveMode === "v-groove") {
+    points = addGroove(points, halfOuter, grooveFromTop);
   }
 
   return {
@@ -164,6 +179,7 @@ function buildRammer(
     boreDepth,
     boreDiameter,
     noseAngle,
+    taperHeight,
     hasTaper: role === "fullDepth" && noseAngle > 0,
     points,
   };

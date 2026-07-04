@@ -1,0 +1,74 @@
+{
+  "annotation_schema_version": "0.1",
+  "reference_id": "ref-bp-core-burner-075in",
+  "features": [
+    {
+      "feature_id": "spindle_E_taper_left_edge",
+      "feature_type": "line_segment",
+      "image_px_start": [
+        0,
+        0
+      ],
+      "image_px_end": [
+        0,
+        0
+      ],
+      "notes": "Manually mark the visible spindle taper edge."
+    },
+    {
+      "feature_id": "spindle_G_collar_left_edge",
+      "feature_type": "line_segment",
+      "image_px_start": [
+        0,
+        0
+      ],
+      "image_px_end": [
+        0,
+        0
+      ],
+      "notes": "Manually mark the collar taper edge."
+    },
+    {
+      "feature_id": "rammer_01_I_taper_edge",
+      "feature_type": "line_segment",
+      "image_px_start": [
+        0,
+        0
+      ],
+      "image_px_end": [
+        0,
+        0
+      ],
+      "notes": "Mark the first/longest rammer backside nozzle taper."
+    },
+    {
+      "feature_id": "rammer_01_bore_opening",
+      "feature_type": "line_segment",
+      "image_px_start": [
+        0,
+        0
+      ],
+      "image_px_end": [
+        0,
+        0
+      ],
+      "notes": "Mark bore opening endpoints if visible/deducible."
+    },
+    {
+      "feature_id": "rammer_01_no_pass_line",
+      "feature_type": "line_segment",
+      "image_px_start": [
+        0,
+        0
+      ],
+      "image_px_end": [
+        0,
+        0
+      ],
+      "notes": "Mark the do-not-pass line/crease."
+    }
+  ],
+  "notes": [
+    "Pixel coordinates are placeholders. Fill by inspection before scoring."
+  ]
+}

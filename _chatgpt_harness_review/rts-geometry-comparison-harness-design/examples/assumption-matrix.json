@@ -1,0 +1,298 @@
+{
+  "assumption_sets": [
+    {
+      "id": "baseline-e-axis-g-face-i-face-no-flat",
+      "label": "Baseline: E axis, G shoulder face, I face, no flat",
+      "description": "Primary expected Flash-like interpretation for first-pass testing.",
+      "angle_conventions": {
+        "E": "from_axis",
+        "G": "from_shoulder_face",
+        "I": "from_face"
+      },
+      "spindle": {
+        "e_taper_sign": "diameter_decreases_toward_tip",
+        "g_zero_mode": "square_shoulder",
+        "g_profile_mode": "square_when_zero_else_flash_formula"
+      },
+      "rammers": {
+        "bore_model": "straight_open_bottom_cylindrical",
+        "bore_visibility": "hidden_dashed",
+        "bore_bottom_style": "flat_square",
+        "i_applies_to": "first_longest_rammer_only",
+        "i_feature": "external_backside_nozzle_taper",
+        "i_taper_end": "bore_opening",
+        "i_taper_has_flat_lip": false,
+        "i_flat_lip_value": 0,
+        "i_taper_start_rule": "derived_from_bore_diameter_and_angle",
+        "show_no_pass_line": true,
+        "no_pass_line_mode": "drawn_mark_only",
+        "no_pass_line_position": "ri_from_top",
+        "show_second_change_line": false,
+        "second_change_line_mode": "not_drawn"
+      },
+      "rendering": {
+        "include_dimensions": true,
+        "include_text_labels": true,
+        "include_helper_markers": false,
+        "flash_like_layout": true,
+        "stroke_width_px": 2,
+        "hidden_dash_pattern": [
+          8,
+          6
+        ],
+        "dimension_arrow_style": "closed_filled",
+        "y_axis_direction": "down",
+        "part_spacing_mode": "flash_like",
+        "round_display_values": true
+      },
+      "notes": [
+        "First candidate expected to match most screenshots if current known truths are correct."
+      ]
+    },
+    {
+      "id": "e-included-angle-control",
+      "label": "Control: E treated as included angle",
+      "description": "Falsification candidate for spindle taper convention.",
+      "angle_conventions": {
+        "E": "included_angle",
+        "G": "from_shoulder_face",
+        "I": "from_face"
+      },
+      "spindle": {
+        "e_taper_sign": "diameter_decreases_toward_tip",
+        "g_zero_mode": "square_shoulder",
+        "g_profile_mode": "square_when_zero_else_flash_formula"
+      },
+      "rammers": {
+        "bore_model": "straight_open_bottom_cylindrical",
+        "bore_visibility": "hidden_dashed",
+        "bore_bottom_style": "flat_square",
+        "i_applies_to": "first_longest_rammer_only",
+        "i_feature": "external_backside_nozzle_taper",
+        "i_taper_end": "bore_opening",
+        "i_taper_has_flat_lip": false,
+        "i_flat_lip_value": 0,
+        "i_taper_start_rule": "derived_from_bore_diameter_and_angle",
+        "show_no_pass_line": true,
+        "no_pass_line_mode": "drawn_mark_only",
+        "no_pass_line_position": "ri_from_top",
+        "show_second_change_line": false,
+        "second_change_line_mode": "not_drawn"
+      },
+      "rendering": {
+        "include_dimensions": true,
+        "include_text_labels": true,
+        "include_helper_markers": false,
+        "flash_like_layout": true,
+        "stroke_width_px": 2,
+        "hidden_dash_pattern": [
+          8,
+          6
+        ],
+        "dimension_arrow_style": "closed_filled",
+        "y_axis_direction": "down",
+        "part_spacing_mode": "flash_like",
+        "round_display_values": true
+      },
+      "notes": [
+        "Expected to produce a shallower spindle taper if included-angle interpretation halves the side angle."
+      ]
+    },
+    {
+      "id": "g-axis-control",
+      "label": "Control: G measured from axis",
+      "description": "Falsification candidate for collar taper convention.",
+      "angle_conventions": {
+        "E": "from_axis",
+        "G": "from_axis",
+        "I": "from_face"
+      },
+      "spindle": {
+        "e_taper_sign": "diameter_decreases_toward_tip",
+        "g_zero_mode": "square_shoulder",
+        "g_profile_mode": "direct_conical_between_A_and_D"
+      },
+      "rammers": {
+        "bore_model": "straight_open_bottom_cylindrical",
+        "bore_visibility": "hidden_dashed",
+        "bore_bottom_style": "flat_square",
+        "i_applies_to": "first_longest_rammer_only",
+        "i_feature": "external_backside_nozzle_taper",
+        "i_taper_end": "bore_opening",
+        "i_taper_has_flat_lip": false,
+        "i_flat_lip_value": 0,
+        "i_taper_start_rule": "derived_from_bore_diameter_and_angle",
+        "show_no_pass_line": true,
+        "no_pass_line_mode": "drawn_mark_only",
+        "no_pass_line_position": "ri_from_top",
+        "show_second_change_line": false,
+        "second_change_line_mode": "not_drawn"
+      },
+      "rendering": {
+        "include_dimensions": true,
+        "include_text_labels": true,
+        "include_helper_markers": false,
+        "flash_like_layout": true,
+        "stroke_width_px": 2,
+        "hidden_dash_pattern": [
+          8,
+          6
+        ],
+        "dimension_arrow_style": "closed_filled",
+        "y_axis_direction": "down",
+        "part_spacing_mode": "flash_like",
+        "round_display_values": true
+      },
+      "notes": [
+        "Expected to mismatch G shoulder if Flash helper/formula imply shoulder-face convention."
+      ]
+    },
+    {
+      "id": "i-axis-control",
+      "label": "Control: I measured from axis",
+      "description": "Falsification candidate for A/first rammer taper angle convention.",
+      "angle_conventions": {
+        "E": "from_axis",
+        "G": "from_shoulder_face",
+        "I": "from_axis"
+      },
+      "spindle": {
+        "e_taper_sign": "diameter_decreases_toward_tip",
+        "g_zero_mode": "square_shoulder",
+        "g_profile_mode": "square_when_zero_else_flash_formula"
+      },
+      "rammers": {
+        "bore_model": "straight_open_bottom_cylindrical",
+        "bore_visibility": "hidden_dashed",
+        "bore_bottom_style": "flat_square",
+        "i_applies_to": "first_longest_rammer_only",
+        "i_feature": "external_backside_nozzle_taper",
+        "i_taper_end": "bore_opening",
+        "i_taper_has_flat_lip": false,
+        "i_flat_lip_value": 0,
+        "i_taper_start_rule": "derived_from_bore_diameter_and_angle",
+        "show_no_pass_line": true,
+        "no_pass_line_mode": "drawn_mark_only",
+        "no_pass_line_position": "ri_from_top",
+        "show_second_change_line": false,
+        "second_change_line_mode": "not_drawn"
+      },
+      "rendering": {
+        "include_dimensions": true,
+        "include_text_labels": true,
+        "include_helper_markers": false,
+        "flash_like_layout": true,
+        "stroke_width_px": 2,
+        "hidden_dash_pattern": [
+          8,
+          6
+        ],
+        "dimension_arrow_style": "closed_filled",
+        "y_axis_direction": "down",
+        "part_spacing_mode": "flash_like",
+        "round_display_values": true
+      },
+      "notes": [
+        "Compare mainly on BP Core Burner, BP End Burner, Stinger, and Fountain/Gerb."
+      ]
+    },
+    {
+      "id": "i-flat-lip-control",
+      "label": "Control: I taper leaves small flat lip",
+      "description": "Tests whether apparent flat before bore opening is real or just raster/stroke artifact.",
+      "angle_conventions": {
+        "E": "from_axis",
+        "G": "from_shoulder_face",
+        "I": "from_face"
+      },
+      "spindle": {
+        "e_taper_sign": "diameter_decreases_toward_tip",
+        "g_zero_mode": "square_shoulder",
+        "g_profile_mode": "square_when_zero_else_flash_formula"
+      },
+      "rammers": {
+        "bore_model": "straight_open_bottom_cylindrical",
+        "bore_visibility": "hidden_dashed",
+        "bore_bottom_style": "flat_square",
+        "i_applies_to": "first_longest_rammer_only",
+        "i_feature": "external_backside_nozzle_taper",
+        "i_taper_end": "small_flat_before_bore_opening",
+        "i_taper_has_flat_lip": true,
+        "i_flat_lip_value": 0.02,
+        "i_taper_start_rule": "derived_from_bore_diameter_and_angle",
+        "show_no_pass_line": true,
+        "no_pass_line_mode": "drawn_mark_only",
+        "no_pass_line_position": "ri_from_top",
+        "show_second_change_line": false,
+        "second_change_line_mode": "not_drawn"
+      },
+      "rendering": {
+        "include_dimensions": true,
+        "include_text_labels": true,
+        "include_helper_markers": false,
+        "flash_like_layout": true,
+        "stroke_width_px": 2,
+        "hidden_dash_pattern": [
+          8,
+          6
+        ],
+        "dimension_arrow_style": "closed_filled",
+        "y_axis_direction": "down",
+        "part_spacing_mode": "flash_like",
+        "round_display_values": true
+      },
+      "notes": [
+        "Use as a close visual control, not as the current expected truth."
+      ]
+    },
+    {
+      "id": "groove-physical-control",
+      "label": "Control: no-pass line as shallow physical groove",
+      "description": "Tests whether the visible no-pass line should appear as actual side-profile geometry in Flash-like render.",
+      "angle_conventions": {
+        "E": "from_axis",
+        "G": "from_shoulder_face",
+        "I": "from_face"
+      },
+      "spindle": {
+        "e_taper_sign": "diameter_decreases_toward_tip",
+        "g_zero_mode": "square_shoulder",
+        "g_profile_mode": "square_when_zero_else_flash_formula"
+      },
+      "rammers": {
+        "bore_model": "straight_open_bottom_cylindrical",
+        "bore_visibility": "hidden_dashed",
+        "bore_bottom_style": "flat_square",
+        "i_applies_to": "first_longest_rammer_only",
+        "i_feature": "external_backside_nozzle_taper",
+        "i_taper_end": "bore_opening",
+        "i_taper_has_flat_lip": false,
+        "i_flat_lip_value": 0,
+        "i_taper_start_rule": "derived_from_bore_diameter_and_angle",
+        "show_no_pass_line": true,
+        "no_pass_line_mode": "shallow_physical_groove",
+        "no_pass_line_position": "ri_from_top",
+        "show_second_change_line": false,
+        "second_change_line_mode": "not_drawn"
+      },
+      "rendering": {
+        "include_dimensions": true,
+        "include_text_labels": true,
+        "include_helper_markers": false,
+        "flash_like_layout": true,
+        "stroke_width_px": 2,
+        "hidden_dash_pattern": [
+          8,
+          6
+        ],
+        "dimension_arrow_style": "closed_filled",
+        "y_axis_direction": "down",
+        "part_spacing_mode": "flash_like",
+        "round_display_values": true
+      },
+      "notes": [
+        "May be useful for production CAD choice, but expected to be worse for pure screenshot matching."
+      ]
+    }
+  ]
+}

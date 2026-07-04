@@ -1,0 +1,425 @@
+:root {
+  font-family: "Segoe UI", "Aptos", sans-serif;
+  color: #1f2937;
+  background:
+    radial-gradient(circle at top left, rgba(243, 205, 97, 0.18), transparent 28%),
+    linear-gradient(145deg, #f1e6d3 0%, #dfd4be 45%, #c9c2b0 100%);
+  color-scheme: light;
+  --panel: rgba(255, 251, 243, 0.84);
+  --stroke: rgba(56, 68, 87, 0.15);
+  --accent: #0f4c5c;
+  --accent-soft: #d8e7ea;
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --paper: #f6f1e8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  padding: 32px;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.eyebrow,
+.sheet-kicker {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+.hero h1,
+.sheet-header h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 0.95;
+}
+
+.lede {
+  max-width: 58rem;
+  margin: 16px 0 0;
+  color: var(--muted);
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.action,
+.chip {
+  border: 1px solid var(--stroke);
+  background: white;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.8rem 1.2rem;
+  cursor: pointer;
+}
+
+.action {
+  background: var(--accent);
+  color: white;
+  border-color: transparent;
+}
+
+.action-secondary,
+.chip-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: rgba(15, 76, 92, 0.18);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) 1fr;
+  gap: 24px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: 28px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(79, 65, 43, 0.12);
+}
+
+.controls {
+  padding: 20px;
+}
+
+.section + .section {
+  margin-top: 18px;
+}
+
+.two-up {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.grid-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field span {
+  font-weight: 600;
+}
+
+.field small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid rgba(56, 68, 87, 0.12);
+  border-radius: 16px;
+  padding: 0.82rem 0.95rem;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.field-check {
+  align-items: start;
+}
+
+.field-check input {
+  width: 22px;
+  height: 22px;
+}
+
+.toggle-row {
+  display: flex;
+  gap: 8px;
+}
+
+.canvas-stack {
+  display: grid;
+  gap: 24px;
+}
+
+.part-row {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  align-items: flex-end;
+}
+
+.spindle-card,
+.rammer-card {
+  min-width: 158px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(56, 68, 87, 0.1);
+  border-radius: 22px;
+  padding: 12px;
+}
+
+.spindle-card {
+  min-width: 220px;
+}
+
+.spindle-svg,
+.rammer-svg {
+  width: 100%;
+  height: auto;
+}
+
+.profile-shape {
+  fill: rgba(15, 76, 92, 0.08);
+  stroke: #111827;
+  stroke-width: 2;
+}
+
+.bore-lines line {
+  stroke: #4b5563;
+  stroke-width: 1.6;
+  stroke-dasharray: 7 6;
+}
+
+.rammer-copy {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.rammer-copy strong {
+  color: var(--ink);
+}
+
+.microcopy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.harness-shell {
+  display: grid;
+  gap: 24px;
+}
+
+.harness-controls {
+  padding: 20px;
+}
+
+.harness-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 520px) 1fr;
+  gap: 24px;
+}
+
+.reference-panel {
+  padding: 20px;
+}
+
+.reference-image {
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(56, 68, 87, 0.12);
+}
+
+.candidate-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.candidate-card {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: 0 20px 60px rgba(79, 65, 43, 0.08);
+}
+
+.candidate-head {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.candidate-head span {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.candidate-parts {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.blueprint {
+  padding: 20px;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.sheet-meta {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.blueprint-canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(56, 68, 87, 0.14);
+}
+
+.svg-title {
+  font-size: 28px;
+  font-weight: 700;
+  fill: #17324d;
+}
+
+.svg-subtitle,
+.svg-notes text,
+.svg-card-note {
+  font-size: 16px;
+  fill: #516173;
+}
+
+.svg-shape {
+  fill: rgba(15, 76, 92, 0.14);
+  stroke: #0f4c5c;
+  stroke-width: 2;
+}
+
+.svg-card {
+  fill: rgba(255, 255, 255, 0.42);
+  stroke: rgba(56, 68, 87, 0.15);
+}
+
+.svg-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  fill: #17324d;
+}
+
+.summary {
+  padding: 20px;
+}
+
+.summary h3 {
+  margin-top: 0;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.summary-grid div {
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(56, 68, 87, 0.08);
+  border-radius: 18px;
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.summary-grid span,
+.materials-copy {
+  color: var(--muted);
+}
+
+.materials-copy {
+  margin: 18px 0 0;
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .harness-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .grid-fields,
+  .two-up,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions,
+  .toggle-row {
+    flex-wrap: wrap;
+  }
+}
+
+@media print {
+  .controls,
+  .hero-actions {
+    display: none;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    box-shadow: none;
+    border: none;
+    background: transparent;
+  }
+}

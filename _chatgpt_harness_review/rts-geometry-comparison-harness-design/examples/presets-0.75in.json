@@ -1,0 +1,281 @@
+{
+  "parameter_sets": [
+    {
+      "id": "bp-core-burner-075in",
+      "name": "BP Core Burner 0.75 in",
+      "preset_key": "bp_core_burner",
+      "units": "in",
+      "source": "original_flash_preset_ratio_table",
+      "parameters": {
+        "A": 0.75,
+        "B": 7.5,
+        "C": 5.625,
+        "D": 0.375,
+        "E": 1.25,
+        "F": 0.5625,
+        "G": 30,
+        "H": 4,
+        "I": 45
+      },
+      "derived_preview": {
+        "ri": 1.125,
+        "d2": 0.129524,
+        "hci": 0.081825,
+        "stage_step_depth": 1.875
+      },
+      "display_precision": {
+        "linear_decimals": 3,
+        "angle_decimals": 2
+      },
+      "notes": [
+        "A fixed at 0.75 in for screenshot comparison examples."
+      ]
+    },
+    {
+      "id": "bp-end-burner-075in",
+      "name": "BP End Burner 0.75 in",
+      "preset_key": "bp_end_burner",
+      "units": "in",
+      "source": "original_flash_preset_ratio_table",
+      "parameters": {
+        "A": 0.75,
+        "B": 5.25,
+        "C": 0.5625,
+        "D": 0.1875,
+        "E": 1.5,
+        "F": 0.5625,
+        "G": 30,
+        "H": 2,
+        "I": 30
+      },
+      "derived_preview": {
+        "ri": 1.125,
+        "d2": 0.158041,
+        "hci": 0.029459,
+        "stage_step_depth": 0.5625
+      },
+      "display_precision": {
+        "linear_decimals": 3,
+        "angle_decimals": 2
+      },
+      "notes": [
+        "A fixed at 0.75 in for screenshot comparison examples."
+      ]
+    },
+    {
+      "id": "whistle-standard-075in",
+      "name": "Whistle - Standard 0.75 in",
+      "preset_key": "whistle_standard",
+      "units": "in",
+      "source": "original_flash_preset_ratio_table",
+      "parameters": {
+        "A": 0.75,
+        "B": 4.5,
+        "C": 1.5,
+        "D": 0.375,
+        "E": 2,
+        "F": 0.4125,
+        "G": 30,
+        "H": 3,
+        "I": 0
+      },
+      "derived_preview": {
+        "ri": 1.125,
+        "d2": 0.270238,
+        "hci": 0.052381,
+        "stage_step_depth": 0.75
+      },
+      "display_precision": {
+        "linear_decimals": 3,
+        "angle_decimals": 2
+      },
+      "notes": [
+        "A fixed at 0.75 in for screenshot comparison examples."
+      ]
+    },
+    {
+      "id": "whistle-pusher-075in",
+      "name": "Whistle - Pusher 0.75 in",
+      "preset_key": "whistle_pusher",
+      "units": "in",
+      "source": "original_flash_preset_ratio_table",
+      "parameters": {
+        "A": 0.75,
+        "B": 4.5,
+        "C": 2.5,
+        "D": 0.5,
+        "E": 3.72,
+        "F": 1.0,
+        "G": 0,
+        "H": 3,
+        "I": 0
+      },
+      "derived_preview": {
+        "ri": 1.125,
+        "d2": 0.174912,
+        "hci": 0.162544,
+        "stage_step_depth": 1.25
+      },
+      "display_precision": {
+        "linear_decimals": 3,
+        "angle_decimals": 2
+      },
+      "notes": [
+        "A fixed at 0.75 in for screenshot comparison examples."
+      ]
+    },
+    {
+      "id": "long-winded-screamer-075in",
+      "name": "Long Winded Screamer 0.75 in",
+      "preset_key": "long_winded_screamer",
+      "units": "in",
+      "source": "original_flash_preset_ratio_table",
+      "parameters": {
+        "A": 0.75,
+        "B": 6.214286,
+        "C": 4.071429,
+        "D": 0.428571,
+        "E": 1.5,
+        "F": 0.267857,
+        "G": 20,
+        "H": 4,
+        "I": 0
+      },
+      "derived_preview": {
+        "ri": 1.125,
+        "d2": 0.215343,
+        "hci": 0.071076,
+        "stage_step_depth": 1.357143
+      },
+      "display_precision": {
+        "linear_decimals": 3,
+        "angle_decimals": 2
+      },
+      "notes": [
+        "A fixed at 0.75 in for screenshot comparison examples."
+      ]
+    },
+    {
+      "id": "stinger-075in",
+      "name": "Stinger 0.75 in",
+      "preset_key": "stinger",
+      "units": "in",
+      "source": "original_flash_preset_ratio_table",
+      "parameters": {
+        "A": 0.75,
+        "B": 3.0,
+        "C": 1.125,
+        "D": 0.25,
+        "E": 2,
+        "F": 0.375,
+        "G": 20,
+        "H": 2,
+        "I": 35
+      },
+      "derived_preview": {
+        "ri": 1.125,
+        "d2": 0.171428,
+        "hci": 0.078572,
+        "stage_step_depth": 1.125
+      },
+      "display_precision": {
+        "linear_decimals": 3,
+        "angle_decimals": 2
+      },
+      "notes": [
+        "A fixed at 0.75 in for screenshot comparison examples."
+      ]
+    },
+    {
+      "id": "strobe-075in",
+      "name": "Strobe 0.75 in",
+      "preset_key": "strobe",
+      "units": "in",
+      "source": "original_flash_preset_ratio_table",
+      "parameters": {
+        "A": 0.75,
+        "B": 6.0,
+        "C": 3.0,
+        "D": 0.375,
+        "E": 1,
+        "F": 0.5625,
+        "G": 30,
+        "H": 3,
+        "I": 0
+      },
+      "derived_preview": {
+        "ri": 1.125,
+        "d2": 0.27027,
+        "hci": 0.052365,
+        "stage_step_depth": 1.5
+      },
+      "display_precision": {
+        "linear_decimals": 3,
+        "angle_decimals": 2
+      },
+      "notes": [
+        "A fixed at 0.75 in for screenshot comparison examples."
+      ]
+    },
+    {
+      "id": "fountain-gerb-075in",
+      "name": "Fountain / Gerb 0.75 in",
+      "preset_key": "fountain_gerb",
+      "units": "in",
+      "source": "original_flash_preset_ratio_table",
+      "parameters": {
+        "A": 0.75,
+        "B": 5.25,
+        "C": 0.75,
+        "D": 0.25,
+        "E": 1,
+        "F": 0.5625,
+        "G": 0,
+        "H": 2,
+        "I": 40
+      },
+      "derived_preview": {
+        "ri": 1.125,
+        "d2": 0.223817,
+        "hci": 0.026183,
+        "stage_step_depth": 0.75
+      },
+      "display_precision": {
+        "linear_decimals": 3,
+        "angle_decimals": 2
+      },
+      "notes": [
+        "A fixed at 0.75 in for screenshot comparison examples."
+      ]
+    },
+    {
+      "id": "custom-whistle-example",
+      "name": "Custom Whistle Example",
+      "preset_key": "custom",
+      "units": "in",
+      "source": "screenshot_reference_custom_example_placeholder",
+      "parameters": {
+        "A": 0.75,
+        "B": 4.5,
+        "C": 1.5,
+        "D": 0.375,
+        "E": 2,
+        "F": 0.4125,
+        "G": 30,
+        "H": 3,
+        "I": 0
+      },
+      "derived_preview": {
+        "ri": 1.125,
+        "note": "Verify exact custom values from screenshot before scoring."
+      },
+      "display_precision": {
+        "linear_decimals": 3,
+        "angle_decimals": 2
+      },
+      "notes": [
+        "Placeholder based on whistle-like values; replace with exact screenshot values if different."
+      ]
+    }
+  ]
+}

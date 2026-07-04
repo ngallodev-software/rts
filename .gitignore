@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.codex-temp/
+*.log
+exports/
+cadquery_test.step
+cadquery_test.stl
+ezdxf_test.dxf

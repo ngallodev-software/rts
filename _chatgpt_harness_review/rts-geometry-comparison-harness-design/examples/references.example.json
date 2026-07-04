@@ -1,0 +1,292 @@
+{
+  "references": [
+    {
+      "id": "ref-bp-core-burner-075in",
+      "file": "references/presets/01-bp-core-burner-0.75in.png",
+      "preset_key": "bp_core_burner",
+      "parameter_set_id": "bp-core-burner-075in",
+      "units": "in",
+      "image_size_px": {
+        "width": 1177,
+        "height": 810
+      },
+      "regions": {
+        "spindle": "TODO: manually annotate bounding box",
+        "rammer_01": "TODO: manually annotate bounding box for first/longest/A rammer",
+        "rammer_02": "TODO: manually annotate bounding box",
+        "rammer_03": "TODO if H >= 3",
+        "rammer_04": "TODO if H >= 4"
+      },
+      "anchors": [
+        {
+          "name": "TODO_spindle_axis_or_known_dimension_anchor",
+          "image_px": [
+            0,
+            0
+          ],
+          "model_ref": "TODO"
+        }
+      ],
+      "annotations_file": "annotations/bp-core-burner-075in.annotations.json",
+      "notes": [
+        "Replace TODO regions and anchors before automated scoring."
+      ]
+    },
+    {
+      "id": "ref-bp-end-burner-075in",
+      "file": "references/presets/02-bp-end-burner-0.75in.png",
+      "preset_key": "bp_end_burner",
+      "parameter_set_id": "bp-end-burner-075in",
+      "units": "in",
+      "image_size_px": {
+        "width": 1186,
+        "height": 811
+      },
+      "regions": {
+        "spindle": "TODO: manually annotate bounding box",
+        "rammer_01": "TODO: manually annotate bounding box for first/longest/A rammer",
+        "rammer_02": "TODO: manually annotate bounding box",
+        "rammer_03": "TODO if H >= 3",
+        "rammer_04": "TODO if H >= 4"
+      },
+      "anchors": [
+        {
+          "name": "TODO_spindle_axis_or_known_dimension_anchor",
+          "image_px": [
+            0,
+            0
+          ],
+          "model_ref": "TODO"
+        }
+      ],
+      "annotations_file": "annotations/bp-end-burner-075in.annotations.json",
+      "notes": [
+        "Replace TODO regions and anchors before automated scoring."
+      ]
+    },
+    {
+      "id": "ref-whistle-standard-075in",
+      "file": "references/presets/03-whistle-standard-0.75in.png",
+      "preset_key": "whistle_standard",
+      "parameter_set_id": "whistle-standard-075in",
+      "units": "in",
+      "image_size_px": {
+        "width": 1180,
+        "height": 806
+      },
+      "regions": {
+        "spindle": "TODO: manually annotate bounding box",
+        "rammer_01": "TODO: manually annotate bounding box for first/longest/A rammer",
+        "rammer_02": "TODO: manually annotate bounding box",
+        "rammer_03": "TODO if H >= 3",
+        "rammer_04": "TODO if H >= 4"
+      },
+      "anchors": [
+        {
+          "name": "TODO_spindle_axis_or_known_dimension_anchor",
+          "image_px": [
+            0,
+            0
+          ],
+          "model_ref": "TODO"
+        }
+      ],
+      "annotations_file": "annotations/whistle-standard-075in.annotations.json",
+      "notes": [
+        "Replace TODO regions and anchors before automated scoring."
+      ]
+    },
+    {
+      "id": "ref-whistle-pusher-075in",
+      "file": "references/presets/04-whistle-pusher-0.75in.png",
+      "preset_key": "whistle_pusher",
+      "parameter_set_id": "whistle-pusher-075in",
+      "units": "in",
+      "image_size_px": {
+        "width": 1177,
+        "height": 809
+      },
+      "regions": {
+        "spindle": "TODO: manually annotate bounding box",
+        "rammer_01": "TODO: manually annotate bounding box for first/longest/A rammer",
+        "rammer_02": "TODO: manually annotate bounding box",
+        "rammer_03": "TODO if H >= 3",
+        "rammer_04": "TODO if H >= 4"
+      },
+      "anchors": [
+        {
+          "name": "TODO_spindle_axis_or_known_dimension_anchor",
+          "image_px": [
+            0,
+            0
+          ],
+          "model_ref": "TODO"
+        }
+      ],
+      "annotations_file": "annotations/whistle-pusher-075in.annotations.json",
+      "notes": [
+        "Replace TODO regions and anchors before automated scoring."
+      ]
+    },
+    {
+      "id": "ref-long-winded-screamer-075in",
+      "file": "references/presets/05-long-winded-screamer-0.75in.png",
+      "preset_key": "long_winded_screamer",
+      "parameter_set_id": "long-winded-screamer-075in",
+      "units": "in",
+      "image_size_px": {
+        "width": 1187,
+        "height": 809
+      },
+      "regions": {
+        "spindle": "TODO: manually annotate bounding box",
+        "rammer_01": "TODO: manually annotate bounding box for first/longest/A rammer",
+        "rammer_02": "TODO: manually annotate bounding box",
+        "rammer_03": "TODO if H >= 3",
+        "rammer_04": "TODO if H >= 4"
+      },
+      "anchors": [
+        {
+          "name": "TODO_spindle_axis_or_known_dimension_anchor",
+          "image_px": [
+            0,
+            0
+          ],
+          "model_ref": "TODO"
+        }
+      ],
+      "annotations_file": "annotations/long-winded-screamer-075in.annotations.json",
+      "notes": [
+        "Replace TODO regions and anchors before automated scoring."
+      ]
+    },
+    {
+      "id": "ref-stinger-075in",
+      "file": "references/presets/06-stinger-0.75in.png",
+      "preset_key": "stinger",
+      "parameter_set_id": "stinger-075in",
+      "units": "in",
+      "image_size_px": {
+        "width": 1183,
+        "height": 810
+      },
+      "regions": {
+        "spindle": "TODO: manually annotate bounding box",
+        "rammer_01": "TODO: manually annotate bounding box for first/longest/A rammer",
+        "rammer_02": "TODO: manually annotate bounding box",
+        "rammer_03": "TODO if H >= 3",
+        "rammer_04": "TODO if H >= 4"
+      },
+      "anchors": [
+        {
+          "name": "TODO_spindle_axis_or_known_dimension_anchor",
+          "image_px": [
+            0,
+            0
+          ],
+          "model_ref": "TODO"
+        }
+      ],
+      "annotations_file": "annotations/stinger-075in.annotations.json",
+      "notes": [
+        "Replace TODO regions and anchors before automated scoring."
+      ]
+    },
+    {
+      "id": "ref-strobe-075in",
+      "file": "references/presets/07-strobe-0.75in.png",
+      "preset_key": "strobe",
+      "parameter_set_id": "strobe-075in",
+      "units": "in",
+      "image_size_px": {
+        "width": 1185,
+        "height": 814
+      },
+      "regions": {
+        "spindle": "TODO: manually annotate bounding box",
+        "rammer_01": "TODO: manually annotate bounding box for first/longest/A rammer",
+        "rammer_02": "TODO: manually annotate bounding box",
+        "rammer_03": "TODO if H >= 3",
+        "rammer_04": "TODO if H >= 4"
+      },
+      "anchors": [
+        {
+          "name": "TODO_spindle_axis_or_known_dimension_anchor",
+          "image_px": [
+            0,
+            0
+          ],
+          "model_ref": "TODO"
+        }
+      ],
+      "annotations_file": "annotations/strobe-075in.annotations.json",
+      "notes": [
+        "Replace TODO regions and anchors before automated scoring."
+      ]
+    },
+    {
+      "id": "ref-fountain-gerb-075in",
+      "file": "references/presets/08-fountain-gerb-0.75in.png",
+      "preset_key": "fountain_gerb",
+      "parameter_set_id": "fountain-gerb-075in",
+      "units": "in",
+      "image_size_px": {
+        "width": 1180,
+        "height": 807
+      },
+      "regions": {
+        "spindle": "TODO: manually annotate bounding box",
+        "rammer_01": "TODO: manually annotate bounding box for first/longest/A rammer",
+        "rammer_02": "TODO: manually annotate bounding box",
+        "rammer_03": "TODO if H >= 3",
+        "rammer_04": "TODO if H >= 4"
+      },
+      "anchors": [
+        {
+          "name": "TODO_spindle_axis_or_known_dimension_anchor",
+          "image_px": [
+            0,
+            0
+          ],
+          "model_ref": "TODO"
+        }
+      ],
+      "annotations_file": "annotations/fountain-gerb-075in.annotations.json",
+      "notes": [
+        "Replace TODO regions and anchors before automated scoring."
+      ]
+    },
+    {
+      "id": "ref-custom-whistle-example",
+      "file": "references/presets/09-custom-whistle-example.png",
+      "preset_key": "custom",
+      "parameter_set_id": "custom-whistle-example",
+      "units": "in",
+      "image_size_px": {
+        "width": 1185,
+        "height": 809
+      },
+      "regions": {
+        "spindle": "TODO: manually annotate bounding box",
+        "rammer_01": "TODO: manually annotate bounding box for first/longest/A rammer",
+        "rammer_02": "TODO: manually annotate bounding box",
+        "rammer_03": "TODO if H >= 3",
+        "rammer_04": "TODO if H >= 4"
+      },
+      "anchors": [
+        {
+          "name": "TODO_spindle_axis_or_known_dimension_anchor",
+          "image_px": [
+            0,
+            0
+          ],
+          "model_ref": "TODO"
+        }
+      ],
+      "annotations_file": "annotations/custom-whistle-example.annotations.json",
+      "notes": [
+        "Replace TODO regions and anchors before automated scoring."
+      ]
+    }
+  ]
+}

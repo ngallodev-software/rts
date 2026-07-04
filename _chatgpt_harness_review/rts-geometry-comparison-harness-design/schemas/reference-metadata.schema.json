@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rocket Tool Sketcher Reference Screenshot Metadata",
+  "type": "object",
+  "required": ["id", "file", "preset_key", "units", "image_size_px"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string" },
+    "file": { "type": "string" },
+    "preset_key": { "type": "string" },
+    "parameter_set_id": { "type": "string" },
+    "units": { "type": "string", "enum": ["in", "mm", "unknown"] },
+    "image_size_px": {
+      "type": "object",
+      "required": ["width", "height"],
+      "additionalProperties": false,
+      "properties": {
+        "width": { "type": "integer", "exclusiveMinimum": 0 },
+        "height": { "type": "integer", "exclusiveMinimum": 0 }
+      }
+    },
+    "regions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["x", "y", "w", "h"],
+        "additionalProperties": false,
+        "properties": {
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "w": { "type": "number", "exclusiveMinimum": 0 },
+          "h": { "type": "number", "exclusiveMinimum": 0 }
+        }
+      }
+    },
+    "anchors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "image_px", "model_ref"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "image_px": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "type": "number" }
+          },
+          "model_ref": { "type": "string" }
+        }
+      }
+    },
+    "annotations_file": { "type": "string" },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

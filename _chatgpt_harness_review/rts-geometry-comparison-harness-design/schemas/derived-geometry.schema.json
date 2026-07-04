@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rocket Tool Sketcher Derived Geometry",
+  "type": "object",
+  "required": ["parameter_set_id", "assumption_set_id", "units", "derived_values", "parts"],
+  "additionalProperties": false,
+  "properties": {
+    "parameter_set_id": { "type": "string" },
+    "assumption_set_id": { "type": "string" },
+    "units": { "type": "string", "enum": ["in", "mm"] },
+    "derived_values": {
+      "type": "object",
+      "additionalProperties": { "type": ["number", "integer", "string", "boolean", "null"] }
+    },
+    "parts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["part_id", "part_type", "features"],
+        "additionalProperties": false,
+        "properties": {
+          "part_id": { "type": "string" },
+          "part_type": { "type": "string", "enum": ["spindle", "rammer"] },
+          "role": { "type": "string" },
+          "stage_index": { "type": "integer" },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["feature_id", "feature_type", "geometry_type", "draw_role", "manufacturing_role"],
+              "additionalProperties": false,
+              "properties": {
+                "feature_id": { "type": "string" },
+                "feature_type": { "type": "string" },
+                "geometry_type": { "type": "string", "enum": ["line", "polyline", "arc", "circle", "text", "dimension", "marker"] },
+                "draw_role": { "type": "string", "enum": ["visible_external", "hidden_internal", "reference", "process_marker", "dimension", "centerline", "text", "construction"] },
+                "manufacturing_role": { "type": "string", "enum": ["external_geometry", "negative_geometry", "reference_only", "process_indicator", "dimension_annotation", "not_manufacturing_geometry"] },
+                "points": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": { "type": "number" }
+                  }
+                },
+                "source_values": { "type": "array", "items": { "type": "string" } },
+                "compare_weight": { "type": "number", "minimum": 0 },
+                "notes": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "dimensions": { "type": "array" },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}

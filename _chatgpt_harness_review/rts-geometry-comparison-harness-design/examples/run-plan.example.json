@@ -1,0 +1,81 @@
+{
+  "run_id": "first-pass-ambiguity-sweep",
+  "purpose": "Render and compare core assumption variants against all original preset screenshots.",
+  "parameter_sets_file": "examples/presets-0.75in.json",
+  "assumption_sets_file": "examples/assumption-matrix.json",
+  "references_file": "examples/references.example.json",
+  "render_modes": [
+    "geometry_only",
+    "flash_like_sheet",
+    "overlay_ready",
+    "per_feature_debug"
+  ],
+  "focus_runs": [
+    {
+      "name": "E convention",
+      "presets": [
+        "bp_core_burner",
+        "long_winded_screamer",
+        "strobe",
+        "whistle_pusher"
+      ],
+      "assumption_ids": [
+        "baseline-e-axis-g-face-i-face-no-flat",
+        "e-included-angle-control"
+      ]
+    },
+    {
+      "name": "G convention",
+      "presets": [
+        "bp_core_burner",
+        "bp_end_burner",
+        "whistle_pusher",
+        "fountain_gerb",
+        "stinger"
+      ],
+      "assumption_ids": [
+        "baseline-e-axis-g-face-i-face-no-flat",
+        "g-axis-control"
+      ]
+    },
+    {
+      "name": "I convention",
+      "presets": [
+        "bp_core_burner",
+        "bp_end_burner",
+        "stinger",
+        "fountain_gerb"
+      ],
+      "assumption_ids": [
+        "baseline-e-axis-g-face-i-face-no-flat",
+        "i-axis-control",
+        "i-flat-lip-control"
+      ]
+    },
+    {
+      "name": "No-pass line rendering",
+      "presets": [
+        "bp_core_burner",
+        "strobe",
+        "fountain_gerb"
+      ],
+      "assumption_ids": [
+        "baseline-e-axis-g-face-i-face-no-flat",
+        "groove-physical-control"
+      ]
+    }
+  ],
+  "score_weights": {
+    "outer_profile": 0.4,
+    "hidden_bores": 0.25,
+    "angle_features": 0.2,
+    "marker_groove": 0.1,
+    "dimension_layout": 0.05
+  },
+  "human_review_required_for": [
+    "I taper endpoint",
+    "I angle convention",
+    "groove physical-vs-drawn representation",
+    "any candidate with target feature score below 0.85"
+  ]
+}

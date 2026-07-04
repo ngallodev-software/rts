@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rocket Tool Sketcher Parameter Set",
+  "type": "object",
+  "required": ["id", "name", "units", "parameters"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "preset_key": { "type": "string" },
+    "units": { "type": "string", "enum": ["in", "mm"] },
+    "source": { "type": "string" },
+    "parameters": {
+      "type": "object",
+      "required": ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
+      "additionalProperties": false,
+      "properties": {
+        "A": { "type": "number", "exclusiveMinimum": 0 },
+        "B": { "type": "number", "exclusiveMinimum": 0 },
+        "C": { "type": "number", "exclusiveMinimum": 0 },
+        "D": { "type": "number", "exclusiveMinimum": 0 },
+        "E": { "type": "number" },
+        "F": { "type": "number", "minimum": 0 },
+        "G": { "type": "number" },
+        "H": { "type": "integer", "minimum": 2 },
+        "I": { "type": "number" }
+      }
+    },
+    "display_precision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "linear_decimals": { "type": "integer", "minimum": 0 },
+        "angle_decimals": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

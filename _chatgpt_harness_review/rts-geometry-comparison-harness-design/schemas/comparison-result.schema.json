@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rocket Tool Sketcher Comparison Result",
+  "type": "object",
+  "required": ["candidate_id", "reference_id", "scores", "decision"],
+  "additionalProperties": false,
+  "properties": {
+    "candidate_id": { "type": "string" },
+    "reference_id": { "type": "string" },
+    "scores": {
+      "type": "object",
+      "required": ["total"],
+      "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+    },
+    "decision": { "type": "string", "enum": ["accept_likely", "needs_human_review", "reject_likely", "inconclusive"] },
+    "flags": { "type": "array", "items": { "type": "string" } },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "reviewer_notes": { "type": "string" }
+  }
+}

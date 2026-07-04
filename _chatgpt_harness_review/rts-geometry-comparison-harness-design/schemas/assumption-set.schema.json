@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rocket Tool Sketcher Geometry Assumption Set",
+  "type": "object",
+  "required": ["id", "label", "angle_conventions", "spindle", "rammers", "rendering"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string" },
+    "label": { "type": "string" },
+    "description": { "type": "string" },
+    "angle_conventions": {
+      "type": "object",
+      "required": ["E", "G", "I"],
+      "additionalProperties": false,
+      "properties": {
+        "E": { "type": "string", "enum": ["from_axis", "from_perpendicular_to_axis", "included_angle"] },
+        "G": { "type": "string", "enum": ["from_shoulder_face", "from_axis", "from_perpendicular_to_axis"] },
+        "I": { "type": "string", "enum": ["from_face", "from_axis", "included_angle"] }
+      }
+    },
+    "spindle": {
+      "type": "object",
+      "required": ["e_taper_sign", "g_zero_mode", "g_profile_mode"],
+      "additionalProperties": false,
+      "properties": {
+        "e_taper_sign": { "type": "string", "enum": ["diameter_decreases_toward_tip", "diameter_increases_toward_tip"] },
+        "g_zero_mode": { "type": "string", "enum": ["square_shoulder", "zero_slope_taper", "fallback_to_flash_formula"] },
+        "g_profile_mode": { "type": "string", "enum": ["flash_formula_points", "direct_conical_between_A_and_D", "square_when_zero_else_flash_formula"] }
+      }
+    },
+    "rammers": {
+      "type": "object",
+      "required": ["bore_model", "bore_visibility", "i_applies_to", "i_feature", "i_taper_end", "i_taper_has_flat_lip", "show_no_pass_line", "no_pass_line_mode", "show_second_change_line"],
+      "additionalProperties": false,
+      "properties": {
+        "bore_model": { "type": "string", "enum": ["straight_open_bottom_cylindrical"] },
+        "bore_visibility": { "type": "string", "enum": ["hidden_dashed", "hidden_dashed_with_open_bottom", "solid_section_cut_for_debug", "not_drawn"] },
+        "bore_bottom_style": { "type": "string", "enum": ["flat_square", "rounded_visual_only", "drill_point_visual_only"] },
+        "i_applies_to": { "type": "string", "enum": ["first_longest_rammer_only", "solid_a_rammer_only", "all_hollow_rammers"] },
+        "i_feature": { "type": "string", "enum": ["external_backside_nozzle_taper", "internal_chamfer_to_bore", "combined_external_and_internal_marker"] },
+        "i_taper_end": { "type": "string", "enum": ["bore_opening", "small_flat_before_bore_opening", "centerline_apex", "outer_edge_only"] },
+        "i_taper_has_flat_lip": { "type": "boolean" },
+        "i_flat_lip_value": { "type": "number", "minimum": 0 },
+        "i_taper_start_rule": { "type": "string", "enum": ["outer_diameter_at_working_face", "intersects_outer_wall_by_angle", "fixed_axial_length_from_working_face", "derived_from_bore_diameter_and_angle"] },
+        "show_no_pass_line": { "type": "boolean" },
+        "no_pass_line_mode": { "type": "string", "enum": ["drawn_mark_only", "shallow_physical_groove", "shoulder_step"] },
+        "no_pass_line_position": { "type": "string", "enum": ["ri_from_top", "ri_from_striking_end", "legacy_flash_position"] },
+        "show_second_change_line": { "type": "boolean" },
+        "second_change_line_mode": { "type": "string", "enum": ["not_drawn", "reference_only", "dashed_process_marker"] }
+      }
+    },
+    "rendering": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "include_dimensions": { "type": "boolean" },
+        "include_text_labels": { "type": "boolean" },
+        "include_helper_markers": { "type": "boolean" },
+        "flash_like_layout": { "type": "boolean" },
+        "stroke_width_px": { "type": "number", "exclusiveMinimum": 0 },
+        "hidden_dash_pattern": { "type": "array", "items": { "type": "number" } },
+        "dimension_arrow_style": { "type": "string" },
+        "y_axis_direction": { "type": "string", "enum": ["down", "up"] },
+        "part_spacing_mode": { "type": "string" },
+        "round_display_values": { "type": "boolean" }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

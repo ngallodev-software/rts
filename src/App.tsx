@@ -1,11 +1,11 @@
 import { type ChangeEvent, useMemo, useState } from "react";
-import { baselineAssumption, harnessAssumptions } from "./model/assumptions";
+import { baselineAssumption } from "./model/assumptions";
 import { fieldMeta } from "./model/fields";
 import { buildToolModel, convertParams, formatDimension, spindleTipUpPoints } from "./model/geometry";
 import { defaultPresetKey, getPreset, presets } from "./model/presets";
-import type { AssumptionSet, RammerModel, ToolModel, ToolParams, Unit } from "./model/types";
+import type { AssumptionSet, FieldKey, RammerModel, ToolModel, ToolParams, Unit } from "./model/types";
 
-type ViewMode = "designer" | "harness";
+type ViewMode = "designer" | "exports";
 
 type LayoutPart = {
   key: string;
@@ -16,7 +16,16 @@ type LayoutPart = {
   rammer?: RammerModel;
 };
 
-const helperImages: Record<keyof ToolParams, { src: string; alt: string }> = {
+type ExportFormat = {
+  key: string;
+  name: string;
+  description: string;
+  output: string;
+  archiveName: string;
+  artifactKey: "combined-dxf" | "part-dxf" | "step" | "stl" | "openscad" | "manifest";
+};
+
+const helperImages: Record<FieldKey, { src: string; alt: string }> = {
   a: { src: "/helpers/helper-a-tube-id.png", alt: "Tube I.D. helper image" },
   b: { src: "/helpers/helper-b-tube-length.png", alt: "Tube length helper image" },
   c: { src: "/helpers/helper-c-spindle-length.png", alt: "Spindle length helper image" },
@@ -28,8 +37,63 @@ const helperImages: Record<keyof ToolParams, { src: string; alt: string }> = {
   i: { src: "/helpers/helper-i-a-rammer-taper.png", alt: "A rammer taper helper image" },
 };
 
+const exportFormats: ExportFormat[] = [
+  {
+    key: "combined-dxf",
+    name: "Combined DXF",
+    description: "Single drawing sheet with spindle, rammers, dimensions, hidden bores, notes, and title block.",
+    output: "tooling-set-annotated.dxf",
+    archiveName: "combined-dxf.zip",
+    artifactKey: "combined-dxf",
+  },
+  {
+    key: "part-dxf",
+    name: "Per-part DXF",
+    description: "One simple sketch/profile DXF per physical part, intended for CAD import and inspection.",
+    output: "drawings/*.dxf",
+    archiveName: "per-part-dxf.zip",
+    artifactKey: "part-dxf",
+  },
+  {
+    key: "step",
+    name: "STEP solids",
+    description: "Machining-oriented 3D solids, exported as one assembly plus one STEP per part.",
+    output: "solids/*.step",
+    archiveName: "step-solids.zip",
+    artifactKey: "step",
+  },
+  {
+    key: "stl",
+    name: "STL preview solids",
+    description: "Mesh exports for visual checks and rough 3D-printing previews, not authoritative machining geometry.",
+    output: "solids/*.stl",
+    archiveName: "stl-preview-solids.zip",
+    artifactKey: "stl",
+  },
+  {
+    key: "openscad",
+    name: "OpenSCAD",
+    description: "Parametric text export for reproducible spindle and rammer generation.",
+    output: "tooling-set.scad",
+    archiveName: "openscad.zip",
+    artifactKey: "openscad",
+  },
+  {
+    key: "manifest",
+    name: "Manifest JSON",
+    description: "Parameters, preset key, assumptions, and derived geometry for regression checks and export jobs.",
+    output: "tooling-set.json",
+    archiveName: "manifest-json.zip",
+    artifactKey: "manifest",
+  },
+];
+
 function makeDefaultParams() {
   return getPreset(defaultPresetKey).derive(0.75);
+}
+
+function unitFloor(value: number, fallbackInches: number) {
+  return value > 5 ? fallbackInches * 25.4 : fallbackInches;
 }
 
 function formatDrawingNumber(value: number, unit: Unit) {
@@ -41,17 +105,19 @@ function formatDrawingNumber(value: number, unit: Unit) {
   return fixed;
 }
 
+function displayPresetLabel(presetKey: string) {
+  return presetKey === "custom" ? "Custom" : getPreset(presetKey).label;
+}
+
 function presetSheetTitle(presetKey: string, params: ToolParams, unit: Unit, assumption?: AssumptionSet) {
-  const label = presetKey === "custom" ? "Custom" : getPreset(presetKey).label;
+  const label = displayPresetLabel(presetKey);
   const suffix = assumption && assumption.key !== "baseline" ? ` - ${assumption.label}` : "";
   const size = unit === "in" ? `${formatDrawingNumber(params.a, unit)}\"` : `${formatDrawingNumber(params.a, unit)} mm`;
   return `${size} ${label}${suffix}`;
 }
 
 function pathData(points: [number, number][], centerX: number, topY: number) {
-  return points
-    .map(([x, y], index) => `${index === 0 ? "M" : "L"} ${centerX + x} ${topY + y}`)
-    .join(" ") + " Z";
+  return points.map(([x, y], index) => `${index === 0 ? "M" : "L"} ${centerX + x} ${topY + y}`).join(" ") + " Z";
 }
 
 function spindlePathData(model: ToolModel, centerX: number, topY: number) {
@@ -60,75 +126,75 @@ function spindlePathData(model: ToolModel, centerX: number, topY: number) {
 
 function computeLayout(model: ToolModel) {
   const a = model.params.a;
-  const marginX = Math.max(a * 1.9, unitFloor(model.params.a, 1.0));
-  const topY = Math.max(a * 2.7, unitFloor(a, 1.45));
-  const spacing = Math.max(a * 3.25, unitFloor(a, 1.65));
+  const topY = Math.max(a * 2.65, unitFloor(a, 1.7));
+  const leftX = Math.max(a * 4.2, unitFloor(a, 2.2));
+  const spacing = Math.max(a * 5.4, unitFloor(a, 2.9));
+  const rightMargin = Math.max(a * 2.6, unitFloor(a, 1.6));
   const maxRammerLength = Math.max(...model.rammers.map((rammer) => rammer.overallLength));
   const solid = model.rammers[0];
-  const spindleGapBelowSolid = Math.max(a * 0.45, unitFloor(a, 0.22));
+  const spindleGapBelowSolid = Math.max(a * 0.35, unitFloor(a, 0.25));
   const spindleExtraBelowLongest = Math.max(a * 0.8, unitFloor(a, 0.45));
   const spindleTopY = Math.max(
     topY + solid.overallLength + spindleGapBelowSolid,
     topY + maxRammerLength - model.spindle.totalLength + spindleExtraBelowLongest,
   );
 
-  const parts: LayoutPart[] = [];
-  const solidX = marginX;
-  parts.push({ key: "spindle", label: "Spindle", centerX: solidX, topY: spindleTopY, kind: "spindle" });
+  const parts: LayoutPart[] = [
+    { key: "spindle", label: "Spindle", centerX: leftX, topY: spindleTopY, kind: "spindle" },
+  ];
+
   model.rammers.forEach((rammer, index) => {
     parts.push({
       key: rammer.key,
       label: rammer.label,
-      centerX: solidX + index * spacing,
+      centerX: leftX + index * spacing,
       topY,
       kind: "rammer",
       rammer,
     });
   });
 
-  const lastX = solidX + (model.rammers.length - 1) * spacing;
-  const width = lastX + Math.max(a * 2.7, unitFloor(a, 1.45));
-  const height = Math.max(spindleTopY + model.spindle.totalLength, topY + maxRammerLength) + Math.max(a * 1.3, unitFloor(a, 0.75));
+  const lastX = leftX + (model.rammers.length - 1) * spacing;
+  const width = lastX + rightMargin;
+  const height = Math.max(spindleTopY + model.spindle.totalLength, topY + maxRammerLength) + Math.max(a * 1.65, unitFloor(a, 0.95));
   return { parts, topY, width, height };
 }
 
-function unitFloor(value: number, fallbackInches: number) {
-  return value > 5 ? fallbackInches * 25.4 : fallbackInches;
-}
-
 function DimensionHorizontal({ x1, x2, y, label }: { x1: number; x2: number; y: number; label: string }) {
-  const tick = Math.abs(x2 - x1) * 0.12 + 0.05;
+  const tick = Math.max(Math.abs(x2 - x1) * 0.12, 0.06);
   return (
     <g className="rts-dim">
       <line x1={x1} y1={y} x2={x2} y2={y} />
       <line x1={x1} y1={y - tick} x2={x1} y2={y + tick} />
       <line x1={x2} y1={y - tick} x2={x2} y2={y + tick} />
-      <text x={(x1 + x2) / 2} y={y - tick * 0.45} textAnchor="middle" className="rts-dim-text">
+      <text x={(x1 + x2) / 2} y={y - tick * 0.5} textAnchor="middle" className="rts-dim-text">
         {label}
       </text>
     </g>
   );
 }
 
-function DimensionVertical({ x, y1, y2, label }: { x: number; y1: number; y2: number; label: string }) {
+function DimensionVertical({ x, y1, y2, label, side = "right" }: { x: number; y1: number; y2: number; label: string; side?: "left" | "right" }) {
   const tick = Math.max(Math.abs(y2 - y1) * 0.025, 0.08);
+  const offset = side === "left" ? -tick * 1.25 : tick * 1.25;
   return (
     <g className="rts-dim">
       <line x1={x} y1={y1} x2={x} y2={y2} />
       <line x1={x - tick} y1={y1} x2={x + tick} y2={y1} />
       <line x1={x - tick} y1={y2} x2={x + tick} y2={y2} />
-      <text x={x + tick * 1.25} y={(y1 + y2) / 2} className="rts-dim-text" transform={`rotate(-90 ${x + tick * 1.25} ${(y1 + y2) / 2})`}>
+      <text x={x + offset} y={(y1 + y2) / 2} className="rts-dim-text" transform={`rotate(-90 ${x + offset} ${(y1 + y2) / 2})`}>
         {label}
       </text>
     </g>
   );
 }
 
-function Leader({ x1, y1, x2, y2, label }: { x1: number; y1: number; x2: number; y2: number; label: string }) {
+function Leader({ x1, y1, x2, y2, label, anchor = "start" }: { x1: number; y1: number; x2: number; y2: number; label: string; anchor?: "start" | "end" }) {
+  const textX = anchor === "end" ? x2 - 0.04 : x2 + 0.04;
   return (
     <g className="rts-leader">
       <line x1={x1} y1={y1} x2={x2} y2={y2} />
-      <text x={x2 + 0.04} y={y2 - 0.03} className="rts-callout-text">
+      <text x={textX} y={y2 - 0.03} textAnchor={anchor} className="rts-callout-text">
         {label}
       </text>
     </g>
@@ -157,13 +223,7 @@ function RammerShape({ rammer, centerX, topY }: { rammer: RammerModel; centerX: 
       <path d={pathData(rammer.points, centerX, topY)} className="rts-profile" />
       <HiddenBore rammer={rammer} centerX={centerX} topY={topY} />
       <line x1={centerX} y1={topY - rammer.outerDiameter * 0.35} x2={centerX} y2={topY + rammer.overallLength + rammer.outerDiameter * 0.35} className="rts-centerline" />
-      <line
-        x1={centerX - rammer.outerDiameter / 2}
-        y1={topY + rammer.grooveFromTop}
-        x2={centerX + rammer.outerDiameter / 2}
-        y2={topY + rammer.grooveFromTop}
-        className="rts-mark"
-      />
+      <line x1={centerX - rammer.outerDiameter / 2} y1={topY + rammer.grooveFromTop} x2={centerX + rammer.outerDiameter / 2} y2={topY + rammer.grooveFromTop} className="rts-mark" />
     </g>
   );
 }
@@ -190,7 +250,7 @@ function ToolingSheet({
   return (
     <svg className="tooling-svg" viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={title} preserveAspectRatio="xMidYMin meet">
       <rect x="0" y="0" width={layout.width} height={layout.height} className="rts-sheet-bg" />
-      <text x={layout.width / 2} y={Math.max(a * 0.8, unitFloor(a, 0.55))} textAnchor="middle" className="rts-sheet-title">
+      <text x={layout.width / 2} y={Math.max(a * 0.78, unitFloor(a, 0.55))} textAnchor="middle" className="rts-sheet-title">
         {title}
       </text>
 
@@ -200,6 +260,7 @@ function ToolingSheet({
           const tipY = part.topY;
           const rootY = part.topY + spindle.spindleLength;
           const collarTopY = part.topY + spindle.totalLength - spindle.collarHeight;
+          const collarTaperStartY = part.topY + spindle.totalLength - Math.max(spindle.collarHeight - spindle.collarRise, 0);
           const collarBottomY = part.topY + spindle.totalLength;
           return (
             <g key={part.key}>
@@ -207,47 +268,17 @@ function ToolingSheet({
               <line x1={part.centerX} y1={part.topY - a * 0.35} x2={part.centerX} y2={collarBottomY + a * 0.35} className="rts-centerline" />
               {showDimensions ? (
                 <>
-                  <DimensionVertical x={part.centerX + a * 1.15} y1={tipY} y2={rootY} label={formatDrawingNumber(spindle.spindleLength, unit)} />
-                  <DimensionVertical x={part.centerX + a * 1.55} y1={tipY} y2={collarBottomY} label={formatDrawingNumber(spindle.totalLength, unit)} />
-                  <DimensionVertical x={part.centerX - a * 1.1} y1={collarTopY} y2={collarBottomY} label={formatDrawingNumber(spindle.collarHeight, unit)} />
+                  <DimensionVertical x={part.centerX + a * 0.95} y1={tipY} y2={rootY} label={formatDrawingNumber(spindle.spindleLength, unit)} />
+                  <DimensionVertical x={part.centerX + a * 1.35} y1={tipY} y2={collarBottomY} label={formatDrawingNumber(spindle.totalLength, unit)} />
+                  <DimensionVertical x={part.centerX - a * 1.05} y1={collarTopY} y2={collarBottomY} label={formatDrawingNumber(spindle.collarHeight, unit)} side="left" />
                   {spindle.collarRise > 0 ? (
-                    <DimensionVertical x={part.centerX - a * 1.45} y1={collarTopY} y2={collarTopY + spindle.collarRise} label={formatDrawingNumber(spindle.collarRise, unit)} />
+                    <DimensionVertical x={part.centerX - a * 1.45} y1={collarTaperStartY} y2={collarTopY} label={formatDrawingNumber(spindle.collarRise, unit)} side="left" />
                   ) : null}
-                  <Leader
-                    x1={part.centerX + spindle.tipDiameter / 2}
-                    y1={tipY}
-                    x2={part.centerX + a * 1.25}
-                    y2={tipY + a * 0.25}
-                    label={`tip ${formatDrawingNumber(spindle.tipDiameter, unit)}`}
-                  />
-                  <Leader
-                    x1={part.centerX + spindle.rootDiameter / 2}
-                    y1={rootY}
-                    x2={part.centerX + a * 1.35}
-                    y2={rootY + a * 0.16}
-                    label={`root ${formatDrawingNumber(spindle.rootDiameter, unit)}`}
-                  />
-                  <Leader
-                    x1={part.centerX + spindle.tubeDiameter / 2}
-                    y1={collarBottomY}
-                    x2={part.centerX + a * 1.35}
-                    y2={collarBottomY - a * 0.35}
-                    label={`collar ${formatDrawingNumber(spindle.tubeDiameter, unit)}`}
-                  />
-                  <Leader
-                    x1={part.centerX + spindle.rootDiameter / 2}
-                    y1={rootY}
-                    x2={part.centerX + a * 1.55}
-                    y2={rootY + a * 0.55}
-                    label={`${formatDrawingNumber(model.params.e, unit)}° side`}
-                  />
-                  <Leader
-                    x1={part.centerX + spindle.rootDiameter / 2}
-                    y1={collarTopY + spindle.collarRise}
-                    x2={part.centerX + a * 1.52}
-                    y2={collarBottomY - a * 0.08}
-                    label={`${formatDrawingNumber(model.params.g, unit)}° collar`}
-                  />
+                  <Leader x1={part.centerX + spindle.tipDiameter / 2} y1={tipY} x2={part.centerX - a * 1.65} y2={tipY + a * 0.3} label={`tip ${formatDrawingNumber(spindle.tipDiameter, unit)}`} anchor="end" />
+                  <Leader x1={part.centerX + spindle.rootDiameter / 2} y1={rootY} x2={part.centerX - a * 1.6} y2={rootY + a * 0.12} label={`root ${formatDrawingNumber(spindle.rootDiameter, unit)}`} anchor="end" />
+                  <Leader x1={part.centerX + spindle.tubeDiameter / 2} y1={collarBottomY - spindle.collarHeight * 0.5} x2={part.centerX - a * 1.65} y2={collarBottomY - a * 0.35} label={`collar ${formatDrawingNumber(spindle.tubeDiameter, unit)}`} anchor="end" />
+                  <Leader x1={part.centerX + spindle.rootDiameter / 2} y1={rootY + a * 0.15} x2={part.centerX + a * 1.25} y2={rootY + a * 0.45} label={`${formatDrawingNumber(model.params.e, unit)}° side`} />
+                  <Leader x1={part.centerX + spindle.tubeDiameter / 2} y1={collarTopY} x2={part.centerX + a * 1.35} y2={collarBottomY - a * 0.12} label={`${formatDrawingNumber(model.params.g, unit)}° collar`} />
                 </>
               ) : null}
               <text x={part.centerX} y={collarBottomY + labelDrop} textAnchor="middle" className="rts-label">
@@ -263,43 +294,25 @@ function ToolingSheet({
         }
         const topY = part.topY;
         const bottomY = part.topY + rammer.overallLength;
+        const totalDimX = part.centerX + rammer.outerDiameter * 1.75;
+        const headDimX = part.centerX + rammer.outerDiameter * 1.22;
+        const boreDimX = part.centerX + rammer.outerDiameter * 2.15;
         return (
           <g key={part.key}>
             <RammerShape rammer={rammer} centerX={part.centerX} topY={part.topY} />
             {showDimensions ? (
               <>
-                <DimensionHorizontal
-                  x1={part.centerX - rammer.outerDiameter / 2}
-                  x2={part.centerX + rammer.outerDiameter / 2}
-                  y={topY - dimLift}
-                  label={formatDrawingNumber(rammer.outerDiameter, unit)}
-                />
-                <DimensionVertical x={part.centerX + rammer.outerDiameter * 1.25} y1={topY} y2={topY + rammer.headLength} label={formatDrawingNumber(rammer.headLength, unit)} />
-                <DimensionVertical x={part.centerX + rammer.outerDiameter * 1.75} y1={topY} y2={bottomY} label={formatDrawingNumber(rammer.overallLength, unit)} />
+                <DimensionHorizontal x1={part.centerX - rammer.outerDiameter / 2} x2={part.centerX + rammer.outerDiameter / 2} y={topY - dimLift} label={formatDrawingNumber(rammer.outerDiameter, unit)} />
+                <DimensionVertical x={headDimX} y1={topY} y2={topY + rammer.headLength} label={formatDrawingNumber(rammer.headLength, unit)} />
+                <DimensionVertical x={totalDimX} y1={topY} y2={bottomY} label={formatDrawingNumber(rammer.overallLength, unit)} />
                 {rammer.boreDepth > 0 && rammer.boreDiameter > 0 ? (
                   <>
-                    <DimensionVertical
-                      x={part.centerX + rammer.outerDiameter * 2.2}
-                      y1={bottomY - rammer.boreDepth}
-                      y2={bottomY}
-                      label={formatDrawingNumber(rammer.boreDepth, unit)}
-                    />
-                    <DimensionHorizontal
-                      x1={part.centerX - rammer.boreDiameter / 2}
-                      x2={part.centerX + rammer.boreDiameter / 2}
-                      y={bottomY + dimLift * 0.72}
-                      label={formatDrawingNumber(rammer.boreDiameter, unit)}
-                    />
+                    <DimensionVertical x={boreDimX} y1={bottomY - rammer.boreDepth} y2={bottomY} label={formatDrawingNumber(rammer.boreDepth, unit)} />
+                    <DimensionHorizontal x1={part.centerX - rammer.boreDiameter / 2} x2={part.centerX + rammer.boreDiameter / 2} y={bottomY + dimLift * 0.7} label={formatDrawingNumber(rammer.boreDiameter, unit)} />
                   </>
                 ) : null}
                 {rammer.hasTaper ? (
-                  <Leader
-                    x1={part.centerX + rammer.boreDiameter / 2}
-                    y1={bottomY}
-                    x2={part.centerX + rammer.outerDiameter * 1.5}
-                    y2={bottomY - rammer.taperHeight - rammer.outerDiameter * 0.45}
-                    label={`${formatDrawingNumber(rammer.noseAngle, unit)}°`}
-                  />
+                  <Leader x1={part.centerX + rammer.boreDiameter / 2} y1={bottomY} x2={part.centerX + rammer.outerDiameter * 1.18} y2={bottomY - Math.max(rammer.taperHeight, a * 0.25)} label={`${formatDrawingNumber(rammer.noseAngle, unit)}°`} />
                 ) : null}
               </>
             ) : null}
@@ -311,6 +324,41 @@ function ToolingSheet({
       })}
     </svg>
   );
+}
+
+function downloadBlob(filename: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+async function requestExportArchive(payload: {
+  artifactKey: "review" | "combined-dxf" | "part-dxf" | "step" | "stl" | "openscad" | "manifest";
+  archiveName: string;
+  presetKey: string;
+  unit: Unit;
+  params: ToolParams;
+  assumptionKey: string;
+}) {
+  const response = await fetch("/api/export", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  const blob = await response.blob();
+  const contentDisposition = response.headers.get("content-disposition") ?? "";
+  const match = /filename=\"?([^\";]+)\"?/i.exec(contentDisposition);
+  downloadBlob(match?.[1] ?? payload.archiveName, blob);
 }
 
 function DesignerView({
@@ -329,12 +377,12 @@ function DesignerView({
   setUnit: (value: Unit) => void;
 }) {
   const [showDimensions, setShowDimensions] = useState(true);
-  const [activeHelper, setActiveHelper] = useState<{ key: keyof ToolParams; top: number; left: number } | null>(null);
+  const [activeHelper, setActiveHelper] = useState<{ key: FieldKey; top: number; left: number } | null>(null);
   const assumption = baselineAssumption;
   const model = useMemo(() => buildToolModel(params, assumption), [params, assumption]);
   const isCustom = presetKey === "custom";
 
-  const setField = (key: keyof ToolParams, value: number) => {
+  const setField = (key: FieldKey, value: number) => {
     if (!isCustom && key !== "a") {
       return;
     }
@@ -345,7 +393,7 @@ function DesignerView({
     setParams({ ...params, [key]: key === "h" ? Math.round(value) : value });
   };
 
-  const showHelper = (key: keyof ToolParams, element: HTMLLabelElement) => {
+  const showHelper = (key: FieldKey, element: HTMLLabelElement) => {
     const rect = element.getBoundingClientRect();
     setActiveHelper({
       key,
@@ -372,7 +420,7 @@ function DesignerView({
 
       <aside className="legacy-controls">
         <label className="field compact-field">
-          <span>Rocket type</span>
+          <span>Tooling type</span>
           <select
             value={presetKey}
             onChange={(event: ChangeEvent<HTMLSelectElement>) => {
@@ -421,8 +469,7 @@ function DesignerView({
         </div>
 
         <div className="control-block">
-          <span className="control-label">Interpretation</span>
-          <p className="microcopy">{assumption.notes}</p>
+          <span className="control-label">Drawing</span>
           <button className="button" onClick={() => setShowDimensions(!showDimensions)}>
             {showDimensions ? "Hide dimensions" : "Show dimensions"}
           </button>
@@ -470,39 +517,68 @@ function DesignerView({
   );
 }
 
-function HarnessView({ harnessPreset, setHarnessPreset }: { harnessPreset: string; setHarnessPreset: (value: string) => void }) {
-  const params = harnessPreset === "custom" ? makeDefaultParams() : getPreset(harnessPreset).derive(0.75);
+function ExportsView({ presetKey, params, unit }: { presetKey: string; params: ToolParams; unit: Unit }) {
+  const model = useMemo(() => buildToolModel(params, baselineAssumption), [params]);
+
+  const downloadArtifact = async (
+    artifactKey: "review" | "combined-dxf" | "part-dxf" | "step" | "stl" | "openscad" | "manifest",
+    archiveName: string,
+  ) => {
+    await requestExportArchive({
+      artifactKey,
+      archiveName,
+      presetKey,
+      unit,
+      params: model.params,
+      assumptionKey: model.assumption.key,
+    });
+  };
 
   return (
-    <div className="harness-shell">
-      <section className="harness-controls-simple">
-        <label>
-          <span>Preset </span>
-          <select value={harnessPreset} onChange={(event: ChangeEvent<HTMLSelectElement>) => setHarnessPreset(event.target.value)}>
-            {presets.map((preset) => (
-              <option key={preset.key} value={preset.key}>
-                {preset.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p>The harness renders candidate assumption sets directly. It no longer embeds old screenshots.</p>
+    <div className="exports-layout">
+      <section className="export-main">
+        <div className="export-header-card">
+          <p className="sheet-kicker">Export center</p>
+          <h2>
+            {displayPresetLabel(presetKey)} — {formatDimension(params.a, unit)}
+          </h2>
+          <p>Generate export archives from the Python tooling pipeline.</p>
+          <div className="export-actions">
+            <button className="button active" onClick={() => downloadArtifact("review", "review-bundle.zip")}>
+              Download review ZIP
+            </button>
+            <button className="button" onClick={() => downloadArtifact("manifest", "manifest-json.zip")}>
+              Manifest ZIP
+            </button>
+            <button className="button" onClick={() => downloadArtifact("openscad", "openscad.zip")}>
+              OpenSCAD ZIP
+            </button>
+          </div>
+        </div>
+
+        <div className="export-preview-card">
+          <h3>Sheet preview</h3>
+          <ToolingSheet model={model} presetKey={presetKey} unit={unit} showDimensions={false} />
+        </div>
       </section>
 
-      <section className="candidate-grid">
-        {harnessAssumptions.map((assumption) => {
-          const model = buildToolModel(params, assumption);
-          return (
-            <article key={assumption.key} className="candidate-card">
-              <div className="candidate-head">
-                <strong>{assumption.label}</strong>
-                <span>{assumption.notes}</span>
+      <aside className="export-format-panel">
+        <h3>Formats</h3>
+        <div className="format-list">
+          {exportFormats.map((format) => (
+            <article key={format.key} className="format-card">
+              <div>
+                <strong>{format.name}</strong>
+                <span>{format.output}</span>
               </div>
-              <ToolingSheet model={model} presetKey={harnessPreset} unit="in" showDimensions={false} assumption={assumption} />
+              <p>{format.description}</p>
+              <button className="button" onClick={() => downloadArtifact(format.artifactKey, format.archiveName)}>
+                Download ZIP
+              </button>
             </article>
-          );
-        })}
-      </section>
+          ))}
+        </div>
+      </aside>
     </div>
   );
 }
@@ -512,37 +588,29 @@ function App() {
   const [presetKey, setPresetKey] = useState(defaultPresetKey);
   const [unit, setUnit] = useState<Unit>("in");
   const [params, setParams] = useState<ToolParams>(makeDefaultParams());
-  const [harnessPreset, setHarnessPreset] = useState(defaultPresetKey);
 
   return (
     <div className="app-shell">
       <header className="app-header">
         <div>
-          <p className="eyebrow">Rocket Tool Sketcher</p>
-          <h1>Shared-scale tooling sheet.</h1>
-          <p className="lede">The preview references the original Flash layout: one white drawing sheet, shared scale, right-side controls, aligned rammer tops, and a spindle below the solid rammer.</p>
+          <p className="eyebrow">Rocket Tooling Designer</p>
+          <h1>Parametric rocket tooling drawings</h1>
+          <p className="lede">Legacy-compatible spindle and rammer tooling, based on the original Rocket Tool Sketcher formulas.</p>
         </div>
         <div className="hero-actions">
           <button className={view === "designer" ? "nav-button active" : "nav-button"} onClick={() => setView("designer")}>
             Designer
           </button>
-          <button className={view === "harness" ? "nav-button active" : "nav-button"} onClick={() => setView("harness")}>
-            Harness
+          <button className={view === "exports" ? "nav-button active" : "nav-button"} onClick={() => setView("exports")}>
+            Exports
           </button>
         </div>
       </header>
 
       {view === "designer" ? (
-        <DesignerView
-          presetKey={presetKey}
-          setPresetKey={setPresetKey}
-          params={params}
-          setParams={setParams}
-          unit={unit}
-          setUnit={setUnit}
-        />
+        <DesignerView presetKey={presetKey} setPresetKey={setPresetKey} params={params} setParams={setParams} unit={unit} setUnit={setUnit} />
       ) : (
-        <HarnessView harnessPreset={harnessPreset} setHarnessPreset={setHarnessPreset} />
+        <ExportsView presetKey={presetKey} params={params} unit={unit} />
       )}
     </div>
   );

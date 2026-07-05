@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "export:server": "python -m rts_export.server",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },

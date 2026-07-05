@@ -5,49 +5,9 @@
   color-scheme: light;
 }
 
-.helper-field {
-  overflow: visible;
-  position: relative;
-}
-
-.helper-layer {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1000;
-}
-
-.helper-popover {
-  position: fixed;
-  width: 154px;
-  transform: translateY(-50%);
-  padding: 6px;
-  border: 1px solid #b8ae73;
-  background: #f5efbf;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-}
-
-.helper-popover img {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; }
+button, input, select, textarea { font: inherit; }
 
 .app-shell {
   min-height: 100vh;
@@ -55,7 +15,7 @@ textarea {
 }
 
 .app-header {
-  min-height: 70px;
+  min-height: 68px;
   padding: 8px 10px 10px;
   border-bottom: 1px solid #aaa;
   display: flex;
@@ -75,7 +35,7 @@ textarea {
 
 .app-header h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1.05;
 }
 
@@ -108,10 +68,15 @@ textarea {
   color: #fff;
 }
 
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .legacy-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 220px;
-  min-height: calc(100vh - 70px);
+  min-height: calc(100vh - 68px);
 }
 
 .drawing-area {
@@ -139,7 +104,8 @@ textarea {
   color: #222;
 }
 
-.sheet-strip h2 {
+.sheet-strip h2,
+.export-header-card h2 {
   margin: 1px 0 0;
   font-size: 17px;
 }
@@ -157,13 +123,11 @@ textarea {
   color: #fff;
   padding: 8px;
   overflow-y: auto;
-  max-height: calc(100vh - 70px);
+  max-height: calc(100vh - 68px);
 }
 
 .control-block,
-.field-list {
-  margin-top: 10px;
-}
+.field-list { margin-top: 10px; }
 
 .control-label,
 .field span {
@@ -182,8 +146,7 @@ textarea {
 }
 
 .field input,
-.field select,
-.harness-controls-simple select {
+.field select {
   width: 100%;
   border: 1px solid #222;
   border-radius: 0;
@@ -193,38 +156,23 @@ textarea {
   font-size: 12px;
 }
 
-.compact-field + .compact-field {
-  margin-top: 8px;
-}
-
-.toggle-row {
-  display: flex;
-  gap: 5px;
-}
-
-.microcopy {
-  margin: 0 0 8px;
-  color: #f0f0f0;
-  font-size: 11px;
-  line-height: 1.35;
-}
+.compact-field + .compact-field { margin-top: 8px; }
+.toggle-row { display: flex; gap: 5px; }
 
 .tooling-svg {
   display: block;
   width: 100%;
-  height: calc(100vh - 116px);
-  min-height: 620px;
+  height: calc(100vh - 112px);
+  min-height: 640px;
   background: #fff;
 }
 
-.rts-sheet-bg {
-  fill: #fff;
-}
+.rts-sheet-bg { fill: #fff; }
 
 .rts-profile {
   fill: none;
   stroke: #000;
-  stroke-width: 1.45px;
+  stroke-width: 1.15px;
   vector-effect: non-scaling-stroke;
   stroke-linejoin: miter;
   stroke-linecap: square;
@@ -233,7 +181,7 @@ textarea {
 .rts-hidden line,
 .rts-hidden {
   stroke: #000;
-  stroke-width: 1.15px;
+  stroke-width: 0.9px;
   vector-effect: non-scaling-stroke;
   stroke-dasharray: 5 5;
   fill: none;
@@ -241,22 +189,22 @@ textarea {
 
 .rts-centerline {
   stroke: #000;
-  stroke-width: 0.8px;
+  stroke-width: 0.65px;
   vector-effect: non-scaling-stroke;
   stroke-dasharray: 9 5 2 5;
-  opacity: 0.75;
+  opacity: 0.68;
 }
 
 .rts-mark {
   stroke: #000;
-  stroke-width: 0.9px;
+  stroke-width: 0.75px;
   vector-effect: non-scaling-stroke;
 }
 
 .rts-dim line,
 .rts-leader line {
   stroke: #000;
-  stroke-width: 0.85px;
+  stroke-width: 0.75px;
   vector-effect: non-scaling-stroke;
 }
 
@@ -268,87 +216,119 @@ textarea {
   font-family: "Courier New", Consolas, monospace;
   paint-order: stroke fill;
   stroke: #fff;
-  stroke-width: 0.02;
+  stroke-width: 0.02px;
 }
 
-.rts-dim-text {
-  font-size: 0.13px;
-}
-
+.rts-dim-text { font-size: 0.12px; }
 .rts-callout-text,
-.rts-label {
-  font-size: 0.14px;
-}
+.rts-label { font-size: 0.13px; }
+.rts-sheet-title { font-size: 0.18px; letter-spacing: 0.04em; }
 
-.rts-sheet-title {
-  font-size: 0.18px;
-  letter-spacing: 0.04em;
+.helper-field { overflow: visible; position: relative; }
+.helper-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
 }
+.helper-popover {
+  position: fixed;
+  width: 154px;
+  transform: translateY(-50%);
+  padding: 6px;
+  border: 1px solid #b8ae73;
+  background: #f5efbf;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+.helper-popover img { display: block; width: 100%; height: auto; }
 
-.harness-shell {
+.exports-layout {
   display: grid;
-  gap: 8px;
-  padding: 8px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 10px;
+  padding: 10px;
 }
 
-.harness-controls-simple {
-  background: #eee;
+.export-main {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.export-header-card,
+.export-preview-card,
+.export-format-panel {
   border: 1px solid #999;
-  padding: 8px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.harness-controls-simple p {
-  margin: 0;
-  font-size: 11px;
-  color: #555;
-}
-
-.candidate-grid {
-  display: grid;
-  gap: 8px;
-}
-
-.candidate-card {
   background: #fff;
-  border: 1px solid #999;
-  padding: 8px;
+  padding: 12px;
 }
 
-.candidate-head {
-  margin-bottom: 4px;
+.export-header-card p,
+.export-format-panel p,
+.format-card p {
+  font-size: 12px;
+  color: #333;
+  margin: 6px 0 0;
+  line-height: 1.35;
+}
+
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.export-preview-card h3,
+.export-format-panel h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.export-preview-card .tooling-svg {
+  height: 520px;
+  min-height: 520px;
+  border: 1px solid #ddd;
+}
+
+.format-list {
+  display: grid;
+  gap: 8px;
+}
+
+.format-card {
+  border: 1px solid #c9c9c9;
+  padding: 10px;
+  background: #f8f8f8;
+}
+
+.format-card div {
   display: grid;
   gap: 2px;
 }
 
-.candidate-head strong {
-  font-size: 16px;
+.format-card strong {
+  font-size: 13px;
 }
 
-.candidate-head span {
+.format-card span {
+  font-family: "Courier New", Consolas, monospace;
   font-size: 11px;
-  color: #333;
+  color: #555;
 }
 
-.candidate-card .tooling-svg {
-  height: 520px;
-  min-height: 520px;
-  border-top: 1px solid #eee;
+.format-card .button {
+  margin-top: 8px;
 }
 
-@media (max-width: 900px) {
-  .legacy-layout {
+@media (max-width: 980px) {
+  .legacy-layout,
+  .exports-layout {
     grid-template-columns: 1fr;
   }
-
   .legacy-controls {
     order: -1;
     max-height: none;
   }
-
-  .tooling-svg {
-    height: 680px;
-  }
+  .tooling-svg { height: 680px; }
 }

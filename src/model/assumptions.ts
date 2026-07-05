@@ -3,7 +3,7 @@ import type { AssumptionSet } from "./types";
 export const baselineAssumption: AssumptionSet = {
   key: "baseline",
   label: "Baseline",
-  notes: "E from axis, G from shoulder face, I from face, do-not-pass mark drawn as a scribed line by default.",
+  notes: "Legacy-compatible angle conventions and scribed do-not-pass marks.",
   angleE: "from_axis",
   angleG: "from_shoulder_face",
   angleI: "from_face",
@@ -16,7 +16,7 @@ export const harnessAssumptions: AssumptionSet[] = [
   {
     key: "e-included",
     label: "E as included angle",
-    notes: "Halves the per-side spindle taper to test a misread drafting convention.",
+    notes: "Test spindle taper if E were interpreted as an included angle.",
     angleE: "included_angle",
     angleG: "from_shoulder_face",
     angleI: "from_face",
@@ -26,7 +26,7 @@ export const harnessAssumptions: AssumptionSet[] = [
   {
     key: "g-from-axis",
     label: "G from axis",
-    notes: "Treats collar taper as an axial taper instead of a shoulder-face angle.",
+    notes: "Test collar taper if G were measured from the spindle axis.",
     angleE: "from_axis",
     angleG: "from_axis",
     angleI: "from_face",
@@ -36,7 +36,7 @@ export const harnessAssumptions: AssumptionSet[] = [
   {
     key: "i-from-axis",
     label: "I from axis",
-    notes: "Tests whether the first rammer taper is measured from the axis rather than the working face.",
+    notes: "Test A-rammer taper if I were measured from the rammer axis.",
     angleE: "from_axis",
     angleG: "from_shoulder_face",
     angleI: "from_axis",
@@ -46,7 +46,7 @@ export const harnessAssumptions: AssumptionSet[] = [
   {
     key: "groove-v-groove",
     label: "Physical V-groove",
-    notes: "Draws the do-not-pass mark as a shallow V-groove to test the older physical-groove interpretation.",
+    notes: "Test do-not-pass marks as machined V-grooves instead of scribed lines.",
     angleE: "from_axis",
     angleG: "from_shoulder_face",
     angleI: "from_face",

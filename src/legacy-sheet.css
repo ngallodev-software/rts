@@ -1,0 +1,79 @@
+/* Optional CSS to merge into the existing app stylesheet. App.tsx uses inline SVG
+   classes with safe defaults, but these rules make the legacy sheet read more
+   like the original Flash drafting output. */
+.legacy-blueprint {
+  overflow: auto;
+}
+
+.legacy-sheet-svg {
+  width: 100%;
+  min-height: 560px;
+  display: block;
+  background: #fff;
+  border: 1px solid rgba(20, 30, 45, 0.12);
+}
+
+.sheet-bg {
+  fill: #fff;
+}
+
+.sheet-profile {
+  fill: none;
+  stroke: #101827;
+  stroke-width: 0.018;
+  vector-effect: non-scaling-stroke;
+}
+
+.sheet-hidden {
+  fill: none;
+  stroke: #101827;
+  stroke-width: 0.012;
+  stroke-dasharray: 0.09 0.07;
+  vector-effect: non-scaling-stroke;
+}
+
+.sheet-centerline {
+  stroke: #0c8f3d;
+  stroke-width: 0.012;
+  stroke-dasharray: 0.14 0.08;
+  vector-effect: non-scaling-stroke;
+}
+
+.sheet-mark {
+  stroke: #101827;
+  stroke-width: 0.012;
+  stroke-dasharray: 0.04 0.04;
+  vector-effect: non-scaling-stroke;
+}
+
+.sheet-dim,
+.sheet-leader {
+  fill: none;
+  stroke: #101827;
+  stroke-width: 0.01;
+  vector-effect: non-scaling-stroke;
+}
+
+.sheet-arrow,
+.sheet-dot {
+  fill: #101827;
+  stroke: none;
+}
+
+.sheet-title {
+  fill: #101827;
+  font: 0.18px monospace;
+  letter-spacing: 0.03px;
+}
+
+.sheet-part-label,
+.sheet-dim-text,
+.sheet-note-text {
+  fill: #101827;
+  font: 0.12px monospace;
+  stroke: none;
+}
+
+.sheet-note-text {
+  text-anchor: start;
+}

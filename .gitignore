@@ -8,3 +8,4 @@ cadquery_test.stl
 ezdxf_test.dxf
 rts*.md
 *.zip
+node_modules/

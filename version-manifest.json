@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0.0",
+  "release": "1.1.0",
+  "versioning_policy": "Semantic Versioning: major for incompatible output changes, minor for backward-compatible features or layout behavior, patch for compatible fixes.",
+  "components": {
+    "web": {
+      "version": "1.0.0",
+      "description": "React designer and export user interface"
+    },
+    "export_api": {
+      "version": "1.0.0",
+      "description": "Local HTTP export and ZIP packaging service"
+    },
+    "geometry_model": {
+      "version": "1.0.0",
+      "description": "Shared spindle, rammer, marks, fits, and tolerance calculations"
+    },
+    "dxf_clean": {
+      "version": "1.0.0",
+      "description": "Combined and separate geometry-only DXF exports"
+    },
+    "dxf_annotated": {
+      "version": "1.1.0",
+      "description": "Combined and separate dimensioned DXF drawings",
+      "change": "Part placement now reserves the measured annotation envelope before positioning the neighboring part."
+    },
+    "pdf_annotated": {
+      "version": "1.0.0",
+      "description": "Landscape annotated PDF drawing set"
+    },
+    "step": {
+      "version": "1.0.0",
+      "description": "Combined and separate STEP solids"
+    },
+    "stl": {
+      "version": "1.0.0",
+      "description": "Combined and separate STL preview solids"
+    },
+    "openscad": {
+      "version": "1.0.0",
+      "description": "Editable parametric OpenSCAD output"
+    },
+    "tooling_manifest": {
+      "version": "1.0.0",
+      "description": "Generated parameters, assumptions, manufacturing settings, and derived geometry JSON"
+    },
+    "verification_harness": {
+      "version": "1.0.0",
+      "description": "Automated and visual export verification checklist"
+    }
+  }
+}

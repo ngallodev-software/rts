@@ -71,3 +71,30 @@ python -m rts_export.cli --preset custom --output exports/custom ^
 - The original SWF export, decompiled ActionScript, screenshots, and the user-supplied manufacturing interpretation notes are all being used to converge on the final geometry rules.
 - This is a clean web rebuild, not a Flash wrapper.
 - The export backend currently lives in [`rts_export`](C:/Users/natha/source/repos/rts/rts_export).
+
+## Export verification
+
+The release gate is [`docs/export-verification-checklist.md`](C:/Users/natha/source/repos/rts/docs/export-verification-checklist.md). Generate a canonical export and run:
+
+```bash
+python scripts/verify_exports.py exports/core-burner-075-layout-v110
+```
+
+The verifier audits every DXF, checks embedded annotation-zone separation, validates component versions and artifact counts, validates the four-page PDF, and renders its pages for visual review. Automated checks supplement, rather than replace, the Solid Edge/Fusion 360 and rendered-page inspections in the checklist.
+
+## Version addendum
+
+Component versions are maintained in [`version-manifest.json`](C:/Users/natha/source/repos/rts/version-manifest.json), embedded in `tooling-set.json`, copied into every export directory, and included in every download ZIP.
+
+### Release 1.0.0 - version baseline
+
+- Assigned independent `1.0.0` versions to the web UI, export API, geometry model, clean DXF, annotated DXF, annotated PDF, STEP, STL, OpenSCAD, tooling manifest, and verification harness.
+- This release records the accepted functional baseline; it does not claim that earlier prototypes had equivalent release quality.
+
+### Release 1.1.0 - annotated DXF zone isolation
+
+- Changed only the combined annotated-DXF layout behavior; `dxf_annotated` is now `1.1.0`.
+- Replaced fixed part spacing with measured annotation envelopes for the spindle, each rammer, and the overview/table.
+- Intended improvement: a part's title, notes, dimensions, leaders, and geometry cannot overlap or obscure the neighboring part's zone when note content grows.
+- Added invisible `RTS_QA` zone metadata so the saved DXF can be checked independently by the verifier.
+- Added the permanent export checklist and automated verifier. Geometry formulas and clean DXF, PDF, STEP, STL, and OpenSCAD generation were not intentionally changed in this release.

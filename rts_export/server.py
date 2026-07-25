@@ -9,7 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from .exporters import export_tooling_set
-from .model import ToolParams, assumption_by_key
+from .model import ManufacturingSettings, ToolParams, assumption_by_key, default_manufacturing_settings
 from .presets import get_preset
 
 
@@ -30,6 +30,22 @@ def _params_from_payload(payload: dict) -> ToolParams:
     )
 
 
+def _manufacturing_from_payload(payload: dict, unit: str) -> ManufacturingSettings:
+    raw = payload.get("manufacturing")
+    if not isinstance(raw, dict):
+        return default_manufacturing_settings("mm" if unit == "mm" else "in")
+    return ManufacturingSettings(
+        general_tolerance=float(raw["generalTolerance"]),
+        spindle_minus_tolerance=float(raw["spindleMinusTolerance"]),
+        bore_plus_tolerance=float(raw["borePlusTolerance"]),
+        minimum_diametral_clearance=float(raw["minimumDiametralClearance"]),
+        switch_mark_offset_diameters=float(raw["switchMarkOffsetDiameters"]),
+        spindle_finish_ra=float(raw["spindleFinishRa"]),
+        rammer_od_finish_ra=float(raw["rammerOdFinishRa"]),
+        rammer_bore_finish_ra=float(raw["rammerBoreFinishRa"]),
+    )
+
+
 def _add_file(zip_file: zipfile.ZipFile, source: str | Path, arcname: str | None = None) -> None:
     path = Path(source)
     zip_file.write(path, arcname or path.as_posix().split("/")[-1])
@@ -44,6 +60,7 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
     unit = str(payload.get("unit", "in"))
     assumption_key = str(payload.get("assumptionKey", "baseline"))
     params = _params_from_payload(payload)
+    manufacturing = _manufacturing_from_payload(payload, unit)
     assumption = assumption_by_key(assumption_key)
     preset = None if preset_key == "custom" else get_preset(preset_key)
 
@@ -55,10 +72,12 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
             assumption=assumption,
             unit=unit,
             preset=preset,
+            manufacturing=manufacturing,
         )
 
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            _add_file(archive, bundle.version_manifest, "version-manifest.json")
             if artifact_key == "review":
                 _add_file(archive, bundle.manifest, "tooling-set.json")
                 _add_file(archive, bundle.openscad, "tooling-set.scad")
@@ -79,8 +98,11 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
                 _add_file(archive, bundle.openscad, "tooling-set.scad")
             elif artifact_key == "combined-dxf":
                 _add_file(archive, bundle.combined_annotated_dxf, "drawings/tooling-set-annotated.dxf")
+                _add_file(archive, bundle.combined_annotated_pdf, "drawings/tooling-set-annotated.pdf")
             elif artifact_key == "part-dxf":
                 for path in bundle.separate_dxfs:
+                    _add_file(archive, path, Path(path).relative_to(output_dir).as_posix())
+                for path in bundle.separate_annotated_pdfs:
                     _add_file(archive, path, Path(path).relative_to(output_dir).as_posix())
             elif artifact_key == "step":
                 _add_file(archive, bundle.combined_step, "solids/tooling-set.step")
@@ -104,7 +126,7 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
 
 
 class ExportHandler(BaseHTTPRequestHandler):
-    server_version = "RTSExportServer/1.0"
+    server_version = "RTSExportServer/1.0.0"
 
     def _send_json_error(self, status: int, message: str) -> None:
         self.send_response(status)

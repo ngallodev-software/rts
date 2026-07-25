@@ -1,9 +1,9 @@
 import { type ChangeEvent, useMemo, useState } from "react";
 import { baselineAssumption } from "./model/assumptions";
 import { fieldMeta } from "./model/fields";
-import { buildToolModel, convertParams, formatDimension, spindleTipUpPoints } from "./model/geometry";
+import { buildToolModel, convertManufacturingSettings, convertParams, defaultManufacturingSettings, formatDimension, spindleTipUpPoints } from "./model/geometry";
 import { defaultPresetKey, getPreset, presets } from "./model/presets";
-import type { AssumptionSet, FieldKey, RammerModel, ToolModel, ToolParams, Unit } from "./model/types";
+import type { AssumptionSet, FieldKey, ManufacturingSettings, RammerModel, ToolModel, ToolParams, Unit } from "./model/types";
 
 type ViewMode = "designer" | "exports";
 
@@ -103,6 +103,10 @@ function formatDrawingNumber(value: number, unit: Unit) {
     return fixed.replace(/^0/, "");
   }
   return fixed;
+}
+
+function formatDrawingLength(value: number, unit: Unit) {
+  return `${formatDrawingNumber(value, unit)} ${unit}`;
 }
 
 function displayPresetLabel(presetKey: string) {
@@ -224,6 +228,9 @@ function RammerShape({ rammer, centerX, topY }: { rammer: RammerModel; centerX: 
       <HiddenBore rammer={rammer} centerX={centerX} topY={topY} />
       <line x1={centerX} y1={topY - rammer.outerDiameter * 0.35} x2={centerX} y2={topY + rammer.overallLength + rammer.outerDiameter * 0.35} className="rts-centerline" />
       <line x1={centerX - rammer.outerDiameter / 2} y1={topY + rammer.grooveFromTop} x2={centerX + rammer.outerDiameter / 2} y2={topY + rammer.grooveFromTop} className="rts-mark" />
+      {rammer.switchMarkFromTop !== null ? (
+        <line x1={centerX - rammer.outerDiameter / 2} y1={topY + rammer.switchMarkFromTop} x2={centerX + rammer.outerDiameter / 2} y2={topY + rammer.switchMarkFromTop} className="rts-switch-mark" />
+      ) : null}
     </g>
   );
 }
@@ -268,15 +275,15 @@ function ToolingSheet({
               <line x1={part.centerX} y1={part.topY - a * 0.35} x2={part.centerX} y2={collarBottomY + a * 0.35} className="rts-centerline" />
               {showDimensions ? (
                 <>
-                  <DimensionVertical x={part.centerX + a * 0.95} y1={tipY} y2={rootY} label={formatDrawingNumber(spindle.spindleLength, unit)} />
-                  <DimensionVertical x={part.centerX + a * 1.35} y1={tipY} y2={collarBottomY} label={formatDrawingNumber(spindle.totalLength, unit)} />
-                  <DimensionVertical x={part.centerX - a * 1.05} y1={collarTopY} y2={collarBottomY} label={formatDrawingNumber(spindle.collarHeight, unit)} side="left" />
+                  <DimensionVertical x={part.centerX + a * 0.95} y1={tipY} y2={rootY} label={formatDrawingLength(spindle.spindleLength, unit)} />
+                  <DimensionVertical x={part.centerX + a * 1.35} y1={tipY} y2={collarBottomY} label={formatDrawingLength(spindle.totalLength, unit)} />
+                  <DimensionVertical x={part.centerX - a * 1.05} y1={collarTopY} y2={collarBottomY} label={formatDrawingLength(spindle.collarHeight, unit)} side="left" />
                   {spindle.collarRise > 0 ? (
-                    <DimensionVertical x={part.centerX - a * 1.45} y1={collarTaperStartY} y2={collarTopY} label={formatDrawingNumber(spindle.collarRise, unit)} side="left" />
+                    <DimensionVertical x={part.centerX - a * 1.45} y1={collarTaperStartY} y2={collarTopY} label={formatDrawingLength(spindle.collarRise, unit)} side="left" />
                   ) : null}
-                  <Leader x1={part.centerX + spindle.tipDiameter / 2} y1={tipY} x2={part.centerX - a * 1.65} y2={tipY + a * 0.3} label={`tip ${formatDrawingNumber(spindle.tipDiameter, unit)}`} anchor="end" />
-                  <Leader x1={part.centerX + spindle.rootDiameter / 2} y1={rootY} x2={part.centerX - a * 1.6} y2={rootY + a * 0.12} label={`root ${formatDrawingNumber(spindle.rootDiameter, unit)}`} anchor="end" />
-                  <Leader x1={part.centerX + spindle.tubeDiameter / 2} y1={collarBottomY - spindle.collarHeight * 0.5} x2={part.centerX - a * 1.65} y2={collarBottomY - a * 0.35} label={`collar ${formatDrawingNumber(spindle.tubeDiameter, unit)}`} anchor="end" />
+                  <Leader x1={part.centerX + spindle.tipDiameter / 2} y1={tipY} x2={part.centerX - a * 1.65} y2={tipY + a * 0.3} label={`tip ${formatDrawingLength(spindle.tipDiameter, unit)}`} anchor="end" />
+                  <Leader x1={part.centerX + spindle.rootDiameter / 2} y1={rootY} x2={part.centerX - a * 1.6} y2={rootY + a * 0.12} label={`root ${formatDrawingLength(spindle.rootDiameter, unit)}`} anchor="end" />
+                  <Leader x1={part.centerX + spindle.tubeDiameter / 2} y1={collarBottomY - spindle.collarHeight * 0.5} x2={part.centerX - a * 1.65} y2={collarBottomY - a * 0.35} label={`collar ${formatDrawingLength(spindle.tubeDiameter, unit)}`} anchor="end" />
                   <Leader x1={part.centerX + spindle.rootDiameter / 2} y1={rootY + a * 0.15} x2={part.centerX + a * 1.25} y2={rootY + a * 0.45} label={`${formatDrawingNumber(model.params.e, unit)}° side`} />
                   <Leader x1={part.centerX + spindle.tubeDiameter / 2} y1={collarTopY} x2={part.centerX + a * 1.35} y2={collarBottomY - a * 0.12} label={`${formatDrawingNumber(model.params.g, unit)}° collar`} />
                 </>
@@ -302,13 +309,13 @@ function ToolingSheet({
             <RammerShape rammer={rammer} centerX={part.centerX} topY={part.topY} />
             {showDimensions ? (
               <>
-                <DimensionHorizontal x1={part.centerX - rammer.outerDiameter / 2} x2={part.centerX + rammer.outerDiameter / 2} y={topY - dimLift} label={formatDrawingNumber(rammer.outerDiameter, unit)} />
-                <DimensionVertical x={headDimX} y1={topY} y2={topY + rammer.headLength} label={formatDrawingNumber(rammer.headLength, unit)} />
-                <DimensionVertical x={totalDimX} y1={topY} y2={bottomY} label={formatDrawingNumber(rammer.overallLength, unit)} />
+                <DimensionHorizontal x1={part.centerX - rammer.outerDiameter / 2} x2={part.centerX + rammer.outerDiameter / 2} y={topY - dimLift} label={formatDrawingLength(rammer.outerDiameter, unit)} />
+                <DimensionVertical x={headDimX} y1={topY} y2={topY + rammer.headLength} label={formatDrawingLength(rammer.headLength, unit)} />
+                <DimensionVertical x={totalDimX} y1={topY} y2={bottomY} label={formatDrawingLength(rammer.overallLength, unit)} />
                 {rammer.boreDepth > 0 && rammer.boreDiameter > 0 ? (
                   <>
-                    <DimensionVertical x={boreDimX} y1={bottomY - rammer.boreDepth} y2={bottomY} label={formatDrawingNumber(rammer.boreDepth, unit)} />
-                    <DimensionHorizontal x1={part.centerX - rammer.boreDiameter / 2} x2={part.centerX + rammer.boreDiameter / 2} y={bottomY + dimLift * 0.7} label={formatDrawingNumber(rammer.boreDiameter, unit)} />
+                    <DimensionVertical x={boreDimX} y1={bottomY - rammer.boreDepth} y2={bottomY} label={formatDrawingLength(rammer.boreDepth, unit)} />
+                    <DimensionHorizontal x1={part.centerX - rammer.boreDiameter / 2} x2={part.centerX + rammer.boreDiameter / 2} y={bottomY + dimLift * 0.7} label={formatDrawingLength(rammer.boreDiameter, unit)} />
                   </>
                 ) : null}
                 {rammer.hasTaper ? (
@@ -342,6 +349,7 @@ async function requestExportArchive(payload: {
   unit: Unit;
   params: ToolParams;
   assumptionKey: string;
+  manufacturing: ManufacturingSettings;
 }) {
   const response = await fetch("/api/export", {
     method: "POST",
@@ -368,6 +376,8 @@ function DesignerView({
   setParams,
   unit,
   setUnit,
+  manufacturing,
+  setManufacturing,
 }: {
   presetKey: string;
   setPresetKey: (value: string) => void;
@@ -375,11 +385,13 @@ function DesignerView({
   setParams: (value: ToolParams) => void;
   unit: Unit;
   setUnit: (value: Unit) => void;
+  manufacturing: ManufacturingSettings;
+  setManufacturing: (value: ManufacturingSettings) => void;
 }) {
   const [showDimensions, setShowDimensions] = useState(true);
   const [activeHelper, setActiveHelper] = useState<{ key: FieldKey; top: number; left: number } | null>(null);
   const assumption = baselineAssumption;
-  const model = useMemo(() => buildToolModel(params, assumption), [params, assumption]);
+  const model = useMemo(() => buildToolModel(params, assumption, manufacturing), [params, assumption, manufacturing]);
   const isCustom = presetKey === "custom";
 
   const setField = (key: FieldKey, value: number) => {
@@ -391,6 +403,18 @@ function DesignerView({
       return;
     }
     setParams({ ...params, [key]: key === "h" ? Math.round(value) : value });
+  };
+
+  const setManufacturingField = (key: keyof ManufacturingSettings, value: number) => {
+    let next = Number.isFinite(value) ? Math.max(value, 0) : 0;
+    if (key === "minimumDiametralClearance") {
+      next = Math.min(Math.max(next, unit === "mm" ? 0.001 : 0.0001), params.a * 0.1);
+    } else if (key === "generalTolerance") {
+      next = Math.min(next, params.a * 0.05);
+    } else if (key === "switchMarkOffsetDiameters") {
+      next = Math.max(next, 0.1);
+    }
+    setManufacturing({ ...manufacturing, [key]: next });
   };
 
   const showHelper = (key: FieldKey, element: HTMLLabelElement) => {
@@ -448,6 +472,7 @@ function DesignerView({
               onClick={() => {
                 if (unit !== "in") {
                   setParams(convertParams(params, "in"));
+                  setManufacturing(convertManufacturingSettings(manufacturing, "in"));
                   setUnit("in");
                 }
               }}
@@ -459,6 +484,7 @@ function DesignerView({
               onClick={() => {
                 if (unit !== "mm") {
                   setParams(convertParams(params, "mm"));
+                  setManufacturing(convertManufacturingSettings(manufacturing, "mm"));
                   setUnit("mm");
                 }
               }}
@@ -505,6 +531,34 @@ function DesignerView({
             </label>
           ))}
         </div>
+
+        <details className="manufacturing-settings">
+          <summary>Manufacturing tolerances</summary>
+          <p className="settings-help">Bores use a positive allowance and spindle diameters a negative allowance, preserving at least the selected diametral clearance.</p>
+          {([
+            ["generalTolerance", "General ± tolerance"],
+            ["spindleMinusTolerance", "Spindle OD minus tolerance"],
+            ["borePlusTolerance", "Bore plus tolerance"],
+            ["minimumDiametralClearance", "Minimum diametral clearance"],
+            ["switchMarkOffsetDiameters", "Switch mark offset (tube I.D.s)"],
+            ["spindleFinishRa", `Spindle finish Ra (${unit === "mm" ? "µm" : "µin"})`],
+            ["rammerOdFinishRa", `Rammer OD finish Ra (${unit === "mm" ? "µm" : "µin"})`],
+            ["rammerBoreFinishRa", `Rammer bore finish Ra (${unit === "mm" ? "µm" : "µin"})`],
+          ] as [keyof ManufacturingSettings, string][]).map(([key, label]) => (
+            <label className="field compact-field" key={key}>
+              <span>{label}</span>
+              <input
+                type="number"
+                min={key === "minimumDiametralClearance" || key === "switchMarkOffsetDiameters" ? 0.0001 : 0}
+                max={key === "minimumDiametralClearance" ? params.a * 0.1 : key === "generalTolerance" ? params.a * 0.05 : undefined}
+                step={key.includes("Finish") ? 1 : 0.001}
+                value={manufacturing[key]}
+                onChange={(event) => setManufacturingField(key, Number(event.target.value))}
+              />
+            </label>
+          ))}
+          <p className="clearance-check">Worst-case diametral clearance: {formatDrawingLength(manufacturing.minimumDiametralClearance, unit)}</p>
+        </details>
       </aside>
       {activeHelper ? (
         <div className="helper-layer" aria-hidden="true">
@@ -517,8 +571,8 @@ function DesignerView({
   );
 }
 
-function ExportsView({ presetKey, params, unit }: { presetKey: string; params: ToolParams; unit: Unit }) {
-  const model = useMemo(() => buildToolModel(params, baselineAssumption), [params]);
+function ExportsView({ presetKey, params, unit, manufacturing }: { presetKey: string; params: ToolParams; unit: Unit; manufacturing: ManufacturingSettings }) {
+  const model = useMemo(() => buildToolModel(params, baselineAssumption, manufacturing), [params, manufacturing]);
 
   const downloadArtifact = async (
     artifactKey: "review" | "combined-dxf" | "part-dxf" | "step" | "stl" | "openscad" | "manifest",
@@ -531,6 +585,7 @@ function ExportsView({ presetKey, params, unit }: { presetKey: string; params: T
       unit,
       params: model.params,
       assumptionKey: model.assumption.key,
+      manufacturing,
     });
   };
 
@@ -588,6 +643,7 @@ function App() {
   const [presetKey, setPresetKey] = useState(defaultPresetKey);
   const [unit, setUnit] = useState<Unit>("in");
   const [params, setParams] = useState<ToolParams>(makeDefaultParams());
+  const [manufacturing, setManufacturing] = useState<ManufacturingSettings>(() => defaultManufacturingSettings("in"));
 
   return (
     <div className="app-shell">
@@ -608,9 +664,9 @@ function App() {
       </header>
 
       {view === "designer" ? (
-        <DesignerView presetKey={presetKey} setPresetKey={setPresetKey} params={params} setParams={setParams} unit={unit} setUnit={setUnit} />
+        <DesignerView presetKey={presetKey} setPresetKey={setPresetKey} params={params} setParams={setParams} unit={unit} setUnit={setUnit} manufacturing={manufacturing} setManufacturing={setManufacturing} />
       ) : (
-        <ExportsView presetKey={presetKey} params={params} unit={unit} />
+        <ExportsView presetKey={presetKey} params={params} unit={unit} manufacturing={manufacturing} />
       )}
     </div>
   );

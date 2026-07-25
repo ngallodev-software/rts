@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="260" viewBox="0 0 420 260">
+  <rect width="420" height="260" fill="#fffdf6"/>
+  <style>text{font-family:Arial,Helvetica,sans-serif;fill:#1f2937}.title{font-size:18px;font-weight:700}.label{font-size:13px}.line{stroke:#111;stroke-width:3;fill:none}.dim{stroke:#0f4c5c;stroke-width:2;fill:none;marker-start:url(#a);marker-end:url(#a)}.dash{stroke:#555;stroke-width:2;stroke-dasharray:8 6;fill:none}</style>
+  <defs><marker id="a" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#0f4c5c"/></marker></defs>
+  <text x="18" y="28" class="title">B — Tube length</text><rect x="170" y="50" width="85" height="165" class="line"/><line x1="285" y1="50" x2="285" y2="215" class="dim"/><text x="296" y="139" class="label">loaded tube length</text>
+</svg>

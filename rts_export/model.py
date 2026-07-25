@@ -31,6 +31,39 @@ class ToolParams:
 
 
 @dataclass(frozen=True)
+class ManufacturingSettings:
+    general_tolerance: float
+    spindle_minus_tolerance: float
+    bore_plus_tolerance: float
+    minimum_diametral_clearance: float
+    switch_mark_offset_diameters: float
+    spindle_finish_ra: float
+    rammer_od_finish_ra: float
+    rammer_bore_finish_ra: float
+
+
+def default_manufacturing_settings(unit: Unit = "in") -> ManufacturingSettings:
+    if unit == "mm":
+        return ManufacturingSettings(0.05, 0.025, 0.025, 0.10, 1.0, 0.8, 0.8, 1.6)
+    return ManufacturingSettings(0.002, 0.001, 0.001, 0.004, 1.0, 32.0, 32.0, 63.0)
+
+
+def validate_manufacturing_settings(settings: ManufacturingSettings, tube_diameter: float) -> None:
+    values = asdict(settings)
+    for key, value in values.items():
+        if value < 0:
+            raise ValueError(f"{key.replace('_', ' ')} cannot be negative.")
+    if settings.minimum_diametral_clearance <= 0:
+        raise ValueError("Minimum diametral clearance must be greater than zero.")
+    if settings.switch_mark_offset_diameters <= 0:
+        raise ValueError("Switch-mark offset must be greater than zero.")
+    if settings.minimum_diametral_clearance > tube_diameter * 0.10:
+        raise ValueError("Minimum diametral clearance cannot exceed 10% of tube I.D.")
+    if settings.general_tolerance > tube_diameter * 0.05:
+        raise ValueError("General tolerance cannot exceed 5% of tube I.D.")
+
+
+@dataclass(frozen=True)
 class AssumptionSet:
     key: str
     label: str
@@ -63,6 +96,7 @@ class RammerModel:
     outer_diameter: float
     head_length: float
     groove_from_top: float
+    switch_mark_from_top: float | None
     bore_depth: float
     bore_diameter: float
     nose_angle: float
@@ -75,6 +109,7 @@ class RammerModel:
 class ToolModel:
     params: ToolParams
     assumption: AssumptionSet
+    manufacturing: ManufacturingSettings
     head_length: float
     spindle: SpindleModel
     rammers: list[RammerModel]
@@ -85,9 +120,11 @@ class ExportBundle:
     output_dir: str
     combined_dxf: str
     combined_annotated_dxf: str
+    combined_annotated_pdf: str
     combined_fusion_dxf: str
     separate_dxfs: list[str]
     separate_annotated_dxfs: list[str]
+    separate_annotated_pdfs: list[str]
     separate_fusion_dxfs: list[str]
     combined_step: str
     separate_steps: list[str]
@@ -95,6 +132,7 @@ class ExportBundle:
     separate_stls: list[str]
     openscad: str
     manifest: str
+    version_manifest: str
 
 
 BASELINE_ASSUMPTION = AssumptionSet(
@@ -267,6 +305,7 @@ def build_rammer(
     outer_diameter: float,
     head_length: float,
     groove_from_top: float,
+    switch_mark_from_top: float | None,
     bore_depth: float,
     bore_diameter: float,
     assumption: AssumptionSet,
@@ -317,6 +356,7 @@ def build_rammer(
         outer_diameter=outer_diameter,
         head_length=head_length,
         groove_from_top=groove_from_top,
+        switch_mark_from_top=switch_mark_from_top,
         bore_depth=bore_depth,
         bore_diameter=bore_diameter,
         nose_angle=nose_angle,
@@ -326,8 +366,15 @@ def build_rammer(
     )
 
 
-def build_tool_model(params: ToolParams, assumption: AssumptionSet = BASELINE_ASSUMPTION) -> ToolModel:
+def build_tool_model(
+    params: ToolParams,
+    assumption: AssumptionSet = BASELINE_ASSUMPTION,
+    manufacturing: ManufacturingSettings | None = None,
+) -> ToolModel:
+    manufacturing = manufacturing or default_manufacturing_settings("in")
+    validate_manufacturing_settings(manufacturing, params.a)
     head_length = params.a * HEAD_RATIO
+    switch_offset = params.a * manufacturing.switch_mark_offset_diameters
     spindle = build_spindle(params, assumption)
     tip_diameter = spindle.tip_diameter
     rammer_count = max(2, int(round(params.h)))
@@ -336,7 +383,7 @@ def build_tool_model(params: ToolParams, assumption: AssumptionSet = BASELINE_AS
     rammers: list[RammerModel] = []
     solid_length = params.b - (params.c + params.f) + head_length
     rammers.append(
-        build_rammer("solid", "Solid rammer", "solid", solid_length, params.a, head_length, head_length, 0.0, 0.0, assumption)
+        build_rammer("solid", "Solid rammer", "solid", solid_length, params.a, head_length, head_length, head_length + switch_offset, 0.0, 0.0, assumption)
     )
 
     full_depth_length = params.b - params.f + head_length
@@ -349,6 +396,7 @@ def build_tool_model(params: ToolParams, assumption: AssumptionSet = BASELINE_AS
             params.a,
             head_length,
             head_length,
+            head_length + switch_offset,
             params.c,
             params.d,
             assumption,
@@ -369,13 +417,21 @@ def build_tool_model(params: ToolParams, assumption: AssumptionSet = BASELINE_AS
                 params.a,
                 head_length,
                 head_length,
+                None if step == rammer_count - 2 else head_length + switch_offset,
                 bore_depth,
                 bore_diameter,
                 assumption,
             )
         )
 
-    return ToolModel(params=params, assumption=assumption, head_length=head_length, spindle=spindle, rammers=rammers)
+    return ToolModel(
+        params=params,
+        assumption=assumption,
+        manufacturing=manufacturing,
+        head_length=head_length,
+        spindle=spindle,
+        rammers=rammers,
+    )
 
 
 def assumption_by_key(key: str) -> AssumptionSet:

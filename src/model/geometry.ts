@@ -1,8 +1,29 @@
 import { baselineAssumption } from "./assumptions";
-import type { AssumptionSet, RammerModel, SpindleModel, ToolModel, ToolParams, Unit } from "./types";
+import type { AssumptionSet, ManufacturingSettings, RammerModel, SpindleModel, ToolModel, ToolParams, Unit } from "./types";
 
 export const MM_PER_INCH = 25.4;
 export const HEAD_RATIO = 1.5;
+
+export function defaultManufacturingSettings(unit: Unit): ManufacturingSettings {
+  return unit === "mm"
+    ? { generalTolerance: 0.05, spindleMinusTolerance: 0.025, borePlusTolerance: 0.025, minimumDiametralClearance: 0.1, switchMarkOffsetDiameters: 1, spindleFinishRa: 0.8, rammerOdFinishRa: 0.8, rammerBoreFinishRa: 1.6 }
+    : { generalTolerance: 0.002, spindleMinusTolerance: 0.001, borePlusTolerance: 0.001, minimumDiametralClearance: 0.004, switchMarkOffsetDiameters: 1, spindleFinishRa: 32, rammerOdFinishRa: 32, rammerBoreFinishRa: 63 };
+}
+
+export function convertManufacturingSettings(settings: ManufacturingSettings, nextUnit: Unit): ManufacturingSettings {
+  const factor = nextUnit === "mm" ? MM_PER_INCH : 1 / MM_PER_INCH;
+  const finishFactor = nextUnit === "mm" ? 0.0254 : 1 / 0.0254;
+  return {
+    ...settings,
+    generalTolerance: round(settings.generalTolerance * factor, nextUnit === "mm" ? 3 : 4),
+    spindleMinusTolerance: round(settings.spindleMinusTolerance * factor, nextUnit === "mm" ? 3 : 4),
+    borePlusTolerance: round(settings.borePlusTolerance * factor, nextUnit === "mm" ? 3 : 4),
+    minimumDiametralClearance: round(settings.minimumDiametralClearance * factor, nextUnit === "mm" ? 3 : 4),
+    spindleFinishRa: round(settings.spindleFinishRa * finishFactor, nextUnit === "mm" ? 2 : 0),
+    rammerOdFinishRa: round(settings.rammerOdFinishRa * finishFactor, nextUnit === "mm" ? 2 : 0),
+    rammerBoreFinishRa: round(settings.rammerBoreFinishRa * finishFactor, nextUnit === "mm" ? 2 : 0),
+  };
+}
 
 export function round(value: number, digits: number) {
   const factor = 10 ** digits;
@@ -129,6 +150,7 @@ function buildRammer(
   outerDiameter: number,
   headLength: number,
   grooveFromTop: number,
+  switchMarkFromTop: number | null,
   boreDepth: number,
   boreDiameter: number,
   assumption: AssumptionSet,
@@ -176,6 +198,7 @@ function buildRammer(
     outerDiameter,
     headLength,
     grooveFromTop,
+    switchMarkFromTop,
     boreDepth,
     boreDiameter,
     noseAngle,
@@ -185,18 +208,23 @@ function buildRammer(
   };
 }
 
-export function buildToolModel(params: ToolParams, assumption: AssumptionSet = baselineAssumption): ToolModel {
+export function buildToolModel(
+  params: ToolParams,
+  assumption: AssumptionSet = baselineAssumption,
+  manufacturing: ManufacturingSettings = defaultManufacturingSettings("in"),
+): ToolModel {
   const headLength = params.a * HEAD_RATIO;
   const spindle = buildSpindle(params, assumption);
   const d2 = spindle.tipDiameter;
   const h = Math.max(2, Math.round(params.h));
   const hci = h > 1 ? (params.d - d2) / (h - 1) : 0;
+  const switchOffset = params.a * manufacturing.switchMarkOffsetDiameters;
 
   const rammers: RammerModel[] = [];
 
   const solidLength = params.b - (params.c + params.f) + headLength;
   rammers.push(
-    buildRammer("solid", "Solid rammer", "solid", solidLength, params.a, headLength, headLength, 0, 0, assumption),
+    buildRammer("solid", "Solid rammer", "solid", solidLength, params.a, headLength, headLength, headLength + switchOffset, 0, 0, assumption),
   );
 
   const fullDepthLength = params.b - params.f + headLength;
@@ -209,6 +237,7 @@ export function buildToolModel(params: ToolParams, assumption: AssumptionSet = b
       params.a,
       headLength,
       headLength,
+      headLength + switchOffset,
       params.c,
       params.d,
       assumption,
@@ -230,6 +259,7 @@ export function buildToolModel(params: ToolParams, assumption: AssumptionSet = b
         params.a,
         headLength,
         headLength,
+        step === h - 2 ? null : headLength + switchOffset,
         boreDepth,
         boreDiameter,
         assumption,
@@ -237,7 +267,7 @@ export function buildToolModel(params: ToolParams, assumption: AssumptionSet = b
     );
   }
 
-  return { params, assumption, headLength, spindle, rammers };
+  return { params, assumption, manufacturing, headLength, spindle, rammers };
 }
 
 export function formatDimension(value: number, unit: Unit) {

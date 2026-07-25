@@ -12,6 +12,17 @@ export type ToolParams = {
   i: number;
 };
 
+export type ManufacturingSettings = {
+  generalTolerance: number;
+  spindleMinusTolerance: number;
+  borePlusTolerance: number;
+  minimumDiametralClearance: number;
+  switchMarkOffsetDiameters: number;
+  spindleFinishRa: number;
+  rammerOdFinishRa: number;
+  rammerBoreFinishRa: number;
+};
+
 export type FieldKey = keyof ToolParams;
 
 export type FieldMeta = {
@@ -60,6 +71,7 @@ export type RammerModel = {
   outerDiameter: number;
   headLength: number;
   grooveFromTop: number;
+  switchMarkFromTop: number | null;
   boreDepth: number;
   boreDiameter: number;
   noseAngle: number;
@@ -71,6 +83,7 @@ export type RammerModel = {
 export type ToolModel = {
   params: ToolParams;
   assumption: AssumptionSet;
+  manufacturing: ManufacturingSettings;
   headLength: number;
   spindle: SpindleModel;
   rammers: RammerModel[];

@@ -84,7 +84,15 @@ pipeline {
         stage('Proof of life') {
             steps {
                 dir("${env.PORTFOLIO_REPO_DIR}") {
-                    sh 'docker compose exec -T rts-export python -c "from urllib.request import urlopen; assert urlopen(\'http://127.0.0.1:8791/healthz\').read() == b\'ok\\n\'"'
+                    sh '''
+                        for attempt in $(seq 1 30); do
+                          if docker compose exec -T rts-export python -c "from urllib.request import urlopen; assert urlopen('http://127.0.0.1:8791/healthz').read() == b'ok\\n'"; then
+                            break
+                          fi
+                          test "$attempt" -lt 30
+                          sleep 2
+                        done
+                    '''
                     sh 'docker compose exec -T web wget --no-check-certificate -qO- https://web/rts/ | grep -F \'<div id="root">\''
                 }
                 sh 'curl -sfL --max-time 20 "$EXTERNAL_URL" | grep -F \'<div id="root">\''

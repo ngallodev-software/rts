@@ -142,6 +142,15 @@ class ExportHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
+    def do_GET(self) -> None:  # noqa: N802
+        if self.path != "/healthz":
+            self._send_json_error(404, "Not found")
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"ok\n")
+
     def do_POST(self) -> None:  # noqa: N802
         if self.path != "/api/export":
             self._send_json_error(404, "Not found")

@@ -351,7 +351,7 @@ async function requestExportArchive(payload: {
   assumptionKey: string;
   manufacturing: ManufacturingSettings;
 }) {
-  const response = await fetch("/api/export", {
+  const response = await fetch(`${import.meta.env.BASE_URL}api/export`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

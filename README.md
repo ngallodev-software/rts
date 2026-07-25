@@ -26,6 +26,17 @@ npm run dev
 npm run build
 ```
 
+## Browser sanity test
+
+After building the app for the `/rts/` base path, run:
+
+```bash
+VITE_BASE_PATH=/rts/ npm run build
+npx playwright test
+```
+
+The test uses locally installed Google Chrome and checks that the designer renders, navigation reaches the export view, and the manifest export button issues the scoped `/rts/api/export` request.
+
 ## Generate CAD exports
 
 Example using a baked-in preset:

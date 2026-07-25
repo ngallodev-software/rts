@@ -2,6 +2,7 @@ node_modules/
 dist/
 .codex-temp/
 *.log
+logs/
 exports/
 cadquery_test.step
 cadquery_test.stl
@@ -10,3 +11,4 @@ rts*.md
 *.zip
 node_modules/
 **/__pycache__/**
+_chatgpt**/**

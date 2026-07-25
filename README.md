@@ -5,19 +5,12 @@ A browser-based rebuild of the original `rockettoolsketcher.swf`, with a shared 
 ## Current scope
 
 - Supports a `Custom` mode with editable A-I dimensions.
-- Includes the baked-in preset families extracted from the Flash app.
+- Includes the baked-in preset g dimensions for some common device types matching the original flash app.
 - Uses one shared spindle and rammer geometry model for the browser preview and export work.
-- Includes a first-pass screenshot comparison harness for validating ambiguous angle conventions.
 - Generates manufacturing exports from Python:
-  - combined clean `DXF`
-  - combined annotated `DXF`
-  - separate clean `DXF` per part
-  - separate annotated `DXF` per part
-  - combined `STEP`
-  - separate `STEP` per part
-  - combined `STL`
-  - separate `STL` per part
-  - generated parametric `OpenSCAD`
+  - combined clean as well as separate, per-part `DXF` files and / or annotated `DXF` files
+  - combined and individual `STEP` and `STL` 3D models
+  - generated parametric `OpenSCAD` script
   - JSON manifest of the exact derived dimensions
 
 ## Run the app
@@ -68,13 +61,9 @@ python -m rts_export.cli --preset custom --output exports/custom ^
 
 ## Project notes
 
-- The original SWF export, decompiled ActionScript, screenshots, and the user-supplied manufacturing interpretation notes are all being used to converge on the final geometry rules.
-- This is a clean web rebuild, not a Flash wrapper.
-- The export backend currently lives in [`rts_export`](C:/Users/natha/source/repos/rts/rts_export).
-
 ## Export verification
 
-The release gate is [`docs/export-verification-checklist.md`](C:/Users/natha/source/repos/rts/docs/export-verification-checklist.md). Generate a canonical export and run:
+The release gate is [`docs/export-verification-checklist.md`] Generate a canonical export and run:
 
 ```bash
 python scripts/verify_exports.py exports/core-burner-075-layout-v110
@@ -84,7 +73,7 @@ The verifier audits every DXF, checks embedded annotation-zone separation, valid
 
 ## Version addendum
 
-Component versions are maintained in [`version-manifest.json`](C:/Users/natha/source/repos/rts/version-manifest.json), embedded in `tooling-set.json`, copied into every export directory, and included in every download ZIP.
+Component versions are maintained in [`version-manifest.json`], embedded in `tooling-set.json`, copied into every export directory, and included in every download ZIP.
 
 ### Release 1.0.0 - version baseline
 

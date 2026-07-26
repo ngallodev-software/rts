@@ -14,6 +14,8 @@ test("designer renders and a manifest export is requested through /rts/api", asy
   await page.goto("/rts/");
   await expect(page.getByRole("heading", { name: "Parametric rocket tooling drawings" })).toBeVisible();
   await expect(page.getByRole("img", { name: /BP Core burner/i })).toBeVisible();
+  await page.getByRole("button", { name: "Dark mode" }).click();
+  await expect(page.locator(".app-shell")).toHaveClass(/theme-dark/);
 
   await page.getByRole("button", { name: "Exports" }).click();
   await expect(page.getByText("Export center")).toBeVisible();

@@ -353,6 +353,87 @@ button, input, select, textarea { font: inherit; }
   margin-top: 8px;
 }
 
+.theme-dark {
+  color-scheme: dark;
+  background: #0b1020;
+  color: #e7edf7;
+}
+
+.theme-dark .app-header {
+  background: #10182b;
+  border-color: #2d3b57;
+}
+
+.theme-dark .eyebrow,
+.theme-dark .lede,
+.theme-dark .sheet-meta,
+.theme-dark .export-header-card p,
+.theme-dark .export-format-panel p,
+.theme-dark .format-card p,
+.theme-dark .format-card span { color: #aebbd0; }
+
+.theme-dark .nav-button,
+.theme-dark .button {
+  border-color: #41506d;
+  background: #17233a;
+  color: #e7edf7;
+}
+
+.theme-dark .nav-button:hover,
+.theme-dark .button:hover { background: #223252; }
+
+.theme-dark .nav-button.active,
+.theme-dark .button.active {
+  background: #e2b84f;
+  border-color: #f0ce72;
+  color: #131925;
+}
+
+.theme-dark .legacy-controls {
+  background: #121c30;
+  border-left: 1px solid #2d3b57;
+}
+
+.theme-dark .drawing-area { border-color: #2d3b57; }
+
+.theme-dark .sheet-strip {
+  border-color: #2d3b57;
+  background: #17233a;
+  color: #e7edf7;
+}
+
+.theme-dark .sheet-kicker { color: #e2b84f; }
+
+.theme-dark .field input,
+.theme-dark .field select {
+  border-color: #41506d;
+  background: #0d1526;
+  color: #e7edf7;
+}
+
+.theme-dark .manufacturing-settings { border-color: #41506d; }
+
+.theme-dark .helper-popover {
+  border-color: #e2b84f;
+  background: #17233a;
+}
+
+.theme-dark .exports-layout { background: #0b1020; }
+
+.theme-dark .export-header-card,
+.theme-dark .export-preview-card,
+.theme-dark .export-format-panel {
+  border-color: #2d3b57;
+  background: #10182b;
+}
+
+.theme-dark .format-card {
+  border-color: #2d3b57;
+  background: #17233a;
+}
+
+.theme-dark .export-preview-card .tooling-svg { border-color: #41506d; }
+
 @media (max-width: 980px) {
   .legacy-layout,
   .exports-layout {

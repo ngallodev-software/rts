@@ -1,4 +1,4 @@
-import { type ChangeEvent, useMemo, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { baselineAssumption } from "./model/assumptions";
 import { fieldMeta } from "./model/fields";
 import { buildToolModel, convertManufacturingSettings, convertParams, defaultManufacturingSettings, formatDimension, spindleTipUpPoints } from "./model/geometry";
@@ -6,6 +6,7 @@ import { defaultPresetKey, getPreset, presets } from "./model/presets";
 import type { AssumptionSet, FieldKey, ManufacturingSettings, RammerModel, ToolModel, ToolParams, Unit } from "./model/types";
 
 type ViewMode = "designer" | "exports";
+type Theme = "light" | "dark";
 
 type LayoutPart = {
   key: string;
@@ -640,13 +641,18 @@ function ExportsView({ presetKey, params, unit, manufacturing }: { presetKey: st
 
 function App() {
   const [view, setView] = useState<ViewMode>("designer");
+  const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem("rts-theme") === "dark" ? "dark" : "light");
   const [presetKey, setPresetKey] = useState(defaultPresetKey);
   const [unit, setUnit] = useState<Unit>("in");
   const [params, setParams] = useState<ToolParams>(makeDefaultParams());
   const [manufacturing, setManufacturing] = useState<ManufacturingSettings>(() => defaultManufacturingSettings("in"));
 
+  useEffect(() => {
+    window.localStorage.setItem("rts-theme", theme);
+  }, [theme]);
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell theme-${theme}`}>
       <header className="app-header">
         <div>
           <p className="eyebrow">Rocket Tooling Designer</p>
@@ -659,6 +665,14 @@ function App() {
           </button>
           <button className={view === "exports" ? "nav-button active" : "nav-button"} onClick={() => setView("exports")}>
             Exports
+          </button>
+          <button
+            className="nav-button theme-toggle"
+            type="button"
+            aria-pressed={theme === "dark"}
+            onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+          >
+            {theme === "dark" ? "Light mode" : "Dark mode"}
           </button>
         </div>
       </header>

@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, type CSSProperties, useEffect, useMemo, useState } from "react";
 import { baselineAssumption } from "./model/assumptions";
 import { fieldMeta } from "./model/fields";
 import { buildToolModel, convertManufacturingSettings, convertParams, defaultManufacturingSettings, formatDimension, spindleTipUpPoints } from "./model/geometry";
@@ -23,7 +23,7 @@ type ExportFormat = {
   description: string;
   output: string;
   archiveName: string;
-  artifactKey: "combined-dxf" | "part-dxf" | "step" | "stl" | "openscad" | "manifest";
+  artifactKey: "combined-dxf" | "part-dxf" | "pdf" | "step" | "stl" | "openscad" | "manifest";
 };
 
 const helperImages: Record<FieldKey, { src: string; alt: string }> = {
@@ -54,6 +54,14 @@ const exportFormats: ExportFormat[] = [
     output: "drawings/*.dxf",
     archiveName: "per-part-dxf.zip",
     artifactKey: "part-dxf",
+  },
+  {
+    key: "pdf",
+    name: "PDF drawing",
+    description: "Annotated tooling sheet with dimensions, notes, and title block, ready to view or print.",
+    output: "tooling-set-annotated.pdf",
+    archiveName: "annotated-pdf.zip",
+    artifactKey: "pdf",
   },
   {
     key: "step",
@@ -134,7 +142,7 @@ function computeLayout(model: ToolModel) {
   const topY = Math.max(a * 2.65, unitFloor(a, 1.7));
   const leftX = Math.max(a * 4.2, unitFloor(a, 2.2));
   const spacing = Math.max(a * 5.4, unitFloor(a, 2.9));
-  const rightMargin = Math.max(a * 2.6, unitFloor(a, 1.6));
+  const rightMargin = Math.max(a * 2.05, unitFloor(a, 1.2));
   const maxRammerLength = Math.max(...model.rammers.map((rammer) => rammer.overallLength));
   const solid = model.rammers[0];
   const spindleGapBelowSolid = Math.max(a * 0.35, unitFloor(a, 0.25));
@@ -256,7 +264,19 @@ function ToolingSheet({
   const labelDrop = Math.max(a * 0.42, unitFloor(a, 0.24));
 
   return (
-    <svg className="tooling-svg" viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={title} preserveAspectRatio="xMidYMin meet">
+    <svg
+      className="tooling-svg"
+      viewBox={`0 0 ${layout.width} ${layout.height}`}
+      role="img"
+      aria-label={title}
+      preserveAspectRatio="xMidYMin meet"
+      style={{
+        "--rts-dim-text-size": `${a * 0.16}px`,
+        "--rts-callout-text-size": `${a * (0.13 / 0.75)}px`,
+        "--rts-sheet-title-size": `${a * 0.24}px`,
+        "--rts-text-outline-size": `${a * (0.02 / 0.75)}px`,
+      } as CSSProperties}
+    >
       <rect x="0" y="0" width={layout.width} height={layout.height} className="rts-sheet-bg" />
       <text x={layout.width / 2} y={Math.max(a * 0.78, unitFloor(a, 0.55))} textAnchor="middle" className="rts-sheet-title">
         {title}
@@ -283,13 +303,13 @@ function ToolingSheet({
                     <DimensionVertical x={part.centerX - a * 1.45} y1={collarTaperStartY} y2={collarTopY} label={formatDrawingLength(spindle.collarRise, unit)} side="left" />
                   ) : null}
                   <Leader x1={part.centerX + spindle.tipDiameter / 2} y1={tipY} x2={part.centerX - a * 1.65} y2={tipY + a * 0.3} label={`tip ${formatDrawingLength(spindle.tipDiameter, unit)}`} anchor="end" />
-                  <Leader x1={part.centerX + spindle.rootDiameter / 2} y1={rootY} x2={part.centerX - a * 1.6} y2={rootY + a * 0.12} label={`root ${formatDrawingLength(spindle.rootDiameter, unit)}`} anchor="end" />
-                  <Leader x1={part.centerX + spindle.tubeDiameter / 2} y1={collarBottomY - spindle.collarHeight * 0.5} x2={part.centerX - a * 1.65} y2={collarBottomY - a * 0.35} label={`collar ${formatDrawingLength(spindle.tubeDiameter, unit)}`} anchor="end" />
-                  <Leader x1={part.centerX + spindle.rootDiameter / 2} y1={rootY + a * 0.15} x2={part.centerX + a * 1.25} y2={rootY + a * 0.45} label={`${formatDrawingNumber(model.params.e, unit)}° side`} />
-                  <Leader x1={part.centerX + spindle.tubeDiameter / 2} y1={collarTopY} x2={part.centerX + a * 1.35} y2={collarBottomY - a * 0.12} label={`${formatDrawingNumber(model.params.g, unit)}° collar`} />
+                  <Leader x1={part.centerX - spindle.rootDiameter / 2} y1={rootY} x2={part.centerX - a * 1.65} y2={rootY - a * 0.35} label={`root ${formatDrawingLength(spindle.rootDiameter, unit)}`} anchor="end" />
+                  <Leader x1={part.centerX - spindle.tubeDiameter / 2} y1={collarBottomY - spindle.collarHeight * 0.5} x2={part.centerX - a * 1.7} y2={collarBottomY + a * 0.55} label={`collar ${formatDrawingLength(spindle.tubeDiameter, unit)}`} anchor="end" />
+                  <Leader x1={part.centerX + spindle.rootDiameter / 2} y1={rootY + a * 0.15} x2={part.centerX + a * 1.35} y2={rootY - a * 0.35} label={`${formatDrawingNumber(model.params.e, unit)}° side`} />
+                  <Leader x1={part.centerX + spindle.tubeDiameter / 2} y1={collarTopY} x2={part.centerX + a * 1.35} y2={collarBottomY + a * 0.48} label={`${formatDrawingNumber(model.params.g, unit)}° collar`} />
                 </>
               ) : null}
-              <text x={part.centerX} y={collarBottomY + labelDrop} textAnchor="middle" className="rts-label">
+              <text x={part.centerX} y={collarBottomY + a * 1.25} textAnchor="middle" className="rts-label">
                 Spindle
               </text>
             </g>
@@ -305,6 +325,7 @@ function ToolingSheet({
         const totalDimX = part.centerX + rammer.outerDiameter * 1.75;
         const headDimX = part.centerX + rammer.outerDiameter * 1.22;
         const boreDimX = part.centerX + rammer.outerDiameter * 2.15;
+        const labelY = rammer.boreDepth > 0 && rammer.boreDiameter > 0 ? bottomY + dimLift * 1.25 : bottomY + labelDrop;
         return (
           <g key={part.key}>
             <RammerShape rammer={rammer} centerX={part.centerX} topY={part.topY} />
@@ -324,7 +345,7 @@ function ToolingSheet({
                 ) : null}
               </>
             ) : null}
-            <text x={part.centerX} y={bottomY + labelDrop} textAnchor="middle" className="rts-label">
+            <text x={part.centerX} y={labelY} textAnchor="middle" className="rts-label">
               {rammer.label}
             </text>
           </g>
@@ -344,13 +365,14 @@ function downloadBlob(filename: string, blob: Blob) {
 }
 
 async function requestExportArchive(payload: {
-  artifactKey: "review" | "combined-dxf" | "part-dxf" | "step" | "stl" | "openscad" | "manifest";
+  artifactKey: "review" | "combined-dxf" | "part-dxf" | "pdf" | "step" | "stl" | "openscad" | "manifest";
   archiveName: string;
   presetKey: string;
   unit: Unit;
   params: ToolParams;
   assumptionKey: string;
   manufacturing: ManufacturingSettings;
+  includeIllustrativeTube: boolean;
 }) {
   const response = await fetch(`${import.meta.env.BASE_URL}api/export`, {
     method: "POST",
@@ -379,6 +401,8 @@ function DesignerView({
   setUnit,
   manufacturing,
   setManufacturing,
+  showIllustrativeTube,
+  setShowIllustrativeTube,
 }: {
   presetKey: string;
   setPresetKey: (value: string) => void;
@@ -388,6 +412,8 @@ function DesignerView({
   setUnit: (value: Unit) => void;
   manufacturing: ManufacturingSettings;
   setManufacturing: (value: ManufacturingSettings) => void;
+  showIllustrativeTube: boolean;
+  setShowIllustrativeTube: (value: boolean) => void;
 }) {
   const [showDimensions, setShowDimensions] = useState(true);
   const [activeHelper, setActiveHelper] = useState<{ key: FieldKey; top: number; left: number } | null>(null);
@@ -502,6 +528,20 @@ function DesignerView({
           </button>
         </div>
 
+        <div className="tube-reference-panel">
+          {showIllustrativeTube ? (
+            <figure className="tube-reference-card">
+              <img src="/tube-reference.png" alt="Illustrative kraft-paper tube" />
+              <figcaption>Tube Length {formatDrawingLength(params.b, unit)}</figcaption>
+            </figure>
+          ) : null}
+          <label className="toggle-check">
+            <input type="checkbox" checked={showIllustrativeTube} onChange={(event) => setShowIllustrativeTube(event.target.checked)} />
+            <span>Show tube</span>
+            <small>Reference only</small>
+          </label>
+        </div>
+
         <div className="field-list">
           {fieldMeta.map((field) => (
             <label
@@ -572,22 +612,34 @@ function DesignerView({
   );
 }
 
-function ExportsView({ presetKey, params, unit, manufacturing }: { presetKey: string; params: ToolParams; unit: Unit; manufacturing: ManufacturingSettings }) {
+function ExportsView({ presetKey, params, unit, manufacturing, showIllustrativeTube }: { presetKey: string; params: ToolParams; unit: Unit; manufacturing: ManufacturingSettings; showIllustrativeTube: boolean }) {
   const model = useMemo(() => buildToolModel(params, baselineAssumption, manufacturing), [params, manufacturing]);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const downloadArtifact = async (
-    artifactKey: "review" | "combined-dxf" | "part-dxf" | "step" | "stl" | "openscad" | "manifest",
+    artifactKey: "review" | "combined-dxf" | "part-dxf" | "pdf" | "step" | "stl" | "openscad" | "manifest",
     archiveName: string,
   ) => {
-    await requestExportArchive({
-      artifactKey,
-      archiveName,
-      presetKey,
-      unit,
-      params: model.params,
-      assumptionKey: model.assumption.key,
-      manufacturing,
-    });
+    setExportError(null);
+    setDownloading(true);
+    try {
+      await requestExportArchive({
+        artifactKey,
+        archiveName,
+        presetKey,
+        unit,
+        params: model.params,
+        assumptionKey: model.assumption.key,
+        manufacturing,
+        includeIllustrativeTube: showIllustrativeTube,
+      });
+    } catch (error) {
+      console.error("RTS export failed", error);
+      setExportError("We couldn’t prepare that export. Confirm the export service is running, then try again.");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -599,14 +651,15 @@ function ExportsView({ presetKey, params, unit, manufacturing }: { presetKey: st
             {displayPresetLabel(presetKey)} — {formatDimension(params.a, unit)}
           </h2>
           <p>Generate export archives from the Python tooling pipeline.</p>
+          {exportError ? <p className="export-status" role="alert">{exportError}</p> : null}
           <div className="export-actions">
-            <button className="button active" onClick={() => downloadArtifact("review", "review-bundle.zip")}>
-              Download review ZIP
+            <button className="button active" disabled={downloading} onClick={() => downloadArtifact("review", "review-bundle.zip")}>
+              {downloading ? "Preparing export…" : "Download review ZIP"}
             </button>
-            <button className="button" onClick={() => downloadArtifact("manifest", "manifest-json.zip")}>
+            <button className="button" disabled={downloading} onClick={() => downloadArtifact("manifest", "manifest-json.zip")}>
               Manifest ZIP
             </button>
-            <button className="button" onClick={() => downloadArtifact("openscad", "openscad.zip")}>
+            <button className="button" disabled={downloading} onClick={() => downloadArtifact("openscad", "openscad.zip")}>
               OpenSCAD ZIP
             </button>
           </div>
@@ -628,7 +681,7 @@ function ExportsView({ presetKey, params, unit, manufacturing }: { presetKey: st
                 <span>{format.output}</span>
               </div>
               <p>{format.description}</p>
-              <button className="button" onClick={() => downloadArtifact(format.artifactKey, format.archiveName)}>
+              <button className="button" disabled={downloading} onClick={() => downloadArtifact(format.artifactKey, format.archiveName)}>
                 Download ZIP
               </button>
             </article>
@@ -646,6 +699,7 @@ function App() {
   const [unit, setUnit] = useState<Unit>("in");
   const [params, setParams] = useState<ToolParams>(makeDefaultParams());
   const [manufacturing, setManufacturing] = useState<ManufacturingSettings>(() => defaultManufacturingSettings("in"));
+  const [showIllustrativeTube, setShowIllustrativeTube] = useState(true);
 
   useEffect(() => {
     window.localStorage.setItem("rts-theme", theme);
@@ -678,9 +732,9 @@ function App() {
       </header>
 
       {view === "designer" ? (
-        <DesignerView presetKey={presetKey} setPresetKey={setPresetKey} params={params} setParams={setParams} unit={unit} setUnit={setUnit} manufacturing={manufacturing} setManufacturing={setManufacturing} />
+        <DesignerView presetKey={presetKey} setPresetKey={setPresetKey} params={params} setParams={setParams} unit={unit} setUnit={setUnit} manufacturing={manufacturing} setManufacturing={setManufacturing} showIllustrativeTube={showIllustrativeTube} setShowIllustrativeTube={setShowIllustrativeTube} />
       ) : (
-        <ExportsView presetKey={presetKey} params={params} unit={unit} manufacturing={manufacturing} />
+        <ExportsView presetKey={presetKey} params={params} unit={unit} manufacturing={manufacturing} showIllustrativeTube={showIllustrativeTube} />
       )}
     </div>
   );

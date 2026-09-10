@@ -53,7 +53,7 @@ def _add_file(zip_file: zipfile.ZipFile, source: str | Path, arcname: str | None
 
 def _build_zip(payload: dict) -> tuple[str, bytes]:
     artifact_key = payload.get("artifactKey")
-    if artifact_key not in {"review", "combined-dxf", "part-dxf", "step", "stl", "openscad", "manifest"}:
+    if artifact_key not in {"review", "combined-dxf", "part-dxf", "pdf", "step", "stl", "openscad", "manifest"}:
         raise ValueError(f"Unknown artifact key: {artifact_key!r}")
 
     preset_key = str(payload.get("presetKey", "custom"))
@@ -61,6 +61,7 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
     assumption_key = str(payload.get("assumptionKey", "baseline"))
     params = _params_from_payload(payload)
     manufacturing = _manufacturing_from_payload(payload, unit)
+    include_illustrative_tube = bool(payload.get("includeIllustrativeTube", False))
     assumption = assumption_by_key(assumption_key)
     preset = None if preset_key == "custom" else get_preset(preset_key)
 
@@ -73,6 +74,7 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
             unit=unit,
             preset=preset,
             manufacturing=manufacturing,
+            include_illustrative_tube=include_illustrative_tube,
         )
 
         buffer = io.BytesIO()
@@ -104,6 +106,8 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
                     _add_file(archive, path, Path(path).relative_to(output_dir).as_posix())
                 for path in bundle.separate_annotated_pdfs:
                     _add_file(archive, path, Path(path).relative_to(output_dir).as_posix())
+            elif artifact_key == "pdf":
+                _add_file(archive, bundle.combined_annotated_pdf, "drawings/tooling-set-annotated.pdf")
             elif artifact_key == "step":
                 _add_file(archive, bundle.combined_step, "solids/tooling-set.step")
                 for path in bundle.separate_steps:
@@ -119,6 +123,7 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
             "openscad": "openscad.zip",
             "combined-dxf": "combined-dxf.zip",
             "part-dxf": "per-part-dxf.zip",
+            "pdf": "annotated-pdf.zip",
             "step": "step-solids.zip",
             "stl": "stl-preview-solids.zip",
         }[artifact_key]
@@ -179,7 +184,7 @@ class ExportHandler(BaseHTTPRequestHandler):
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the RTS export API server.")
     parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8787)
+    parser.add_argument("--port", type=int, default=8791)
     args = parser.parse_args()
     server = ThreadingHTTPServer((args.host, args.port), ExportHandler)
     print(f"RTS export server listening on http://{args.host}:{args.port}")

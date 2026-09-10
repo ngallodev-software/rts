@@ -1902,6 +1902,7 @@ def _write_manifest(
     preset: PresetDefinition | None,
     unit: str,
     model: ToolModel,
+    include_illustrative_tube: bool,
 ) -> str:
     payload = {
         "versions": load_version_manifest(),
@@ -1917,6 +1918,14 @@ def _write_manifest(
             "rammers": [asdict(rammer) for rammer in model.rammers],
         },
     }
+    if include_illustrative_tube:
+        payload["illustrative_tube"] = {
+            "included": True,
+            "machining_geometry": False,
+            "length": params.b,
+            "unit": unit,
+            "note": "Reference illustration only; excluded from DXF, STEP, STL, and OpenSCAD geometry.",
+        }
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return str(path)
 
@@ -1929,6 +1938,7 @@ def export_tooling_set(
     unit: str = "in",
     preset: PresetDefinition | None = None,
     manufacturing: ManufacturingSettings | None = None,
+    include_illustrative_tube: bool = False,
 ) -> ExportBundle:
     output_dir = ensure_directory(output_dir)
     drawings_dir = ensure_directory(output_dir / "drawings")
@@ -1989,7 +1999,7 @@ def export_tooling_set(
     openscad_path = output_dir / "tooling-set.scad"
     _write_openscad(openscad_path, model, preset, assumption, unit)
     manifest_path = output_dir / "tooling-set.json"
-    manifest = _write_manifest(manifest_path, params, assumption, preset, unit, model)
+    manifest = _write_manifest(manifest_path, params, assumption, preset, unit, model, include_illustrative_tube)
     version_manifest = write_version_manifest(output_dir / "version-manifest.json")
 
     return ExportBundle(

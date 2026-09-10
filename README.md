@@ -17,8 +17,17 @@ A browser-based rebuild of the original `rockettoolsketcher.swf`, with a shared 
 
 ```bash
 npm install
-npm run dev
 ```
+
+Start both the browser app and export service:
+
+```bash
+npm run start
+```
+
+The browser will report its local address when it is ready. The development server forwards export requests to the local export service at `http://127.0.0.1:8791`.
+
+For separate processes, run `npm run export:server` and `npm run dev` in different terminals.
 
 ## Build the app
 

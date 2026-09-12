@@ -1,5 +1,5 @@
 import { baselineAssumption } from "./assumptions";
-import type { AssumptionSet, ManufacturingSettings, RammerModel, SpindleModel, ToolModel, ToolParams, Unit } from "./types";
+import type { AssumptionSet, ManufacturingSettings, RammerModel, SpindleBaseSettings, SpindleModel, ToolModel, ToolParams, Unit } from "./types";
 
 export const MM_PER_INCH = 25.4;
 export const HEAD_RATIO = 1.5;
@@ -8,6 +8,39 @@ export function defaultManufacturingSettings(unit: Unit): ManufacturingSettings 
   return unit === "mm"
     ? { generalTolerance: 0.05, spindleMinusTolerance: 0.025, borePlusTolerance: 0.025, minimumDiametralClearance: 0.1, switchMarkOffsetDiameters: 1, spindleFinishRa: 0.8, rammerOdFinishRa: 0.8, rammerBoreFinishRa: 1.6 }
     : { generalTolerance: 0.002, spindleMinusTolerance: 0.001, borePlusTolerance: 0.001, minimumDiametralClearance: 0.004, switchMarkOffsetDiameters: 1, spindleFinishRa: 32, rammerOdFinishRa: 32, rammerBoreFinishRa: 63 };
+}
+
+export function defaultSpindleBaseSettings(unit: Unit): SpindleBaseSettings {
+  const scale = unit === "mm" ? MM_PER_INCH : 1;
+  return {
+    enabled: false,
+    shape: "square",
+    size: 1.25 * scale,
+    height: 1.5 * scale,
+    extensionDiameter: 1 * scale,
+    extensionLength: 0.5 * scale,
+    fastenerThread: "1/4-20",
+    clearanceHoleDiameter: 0.266 * scale,
+    counterboreDiameter: 0.438 * scale,
+    counterboreDepth: 0.25 * scale,
+    tapDepth: 0.375 * scale,
+  };
+}
+
+export function convertSpindleBaseSettings(settings: SpindleBaseSettings, nextUnit: Unit): SpindleBaseSettings {
+  const factor = nextUnit === "mm" ? MM_PER_INCH : 1 / MM_PER_INCH;
+  const digits = nextUnit === "mm" ? 3 : 4;
+  return {
+    ...settings,
+    size: round(settings.size * factor, digits),
+    height: round(settings.height * factor, digits),
+    extensionDiameter: round(settings.extensionDiameter * factor, digits),
+    extensionLength: round(settings.extensionLength * factor, digits),
+    clearanceHoleDiameter: round(settings.clearanceHoleDiameter * factor, digits),
+    counterboreDiameter: round(settings.counterboreDiameter * factor, digits),
+    counterboreDepth: round(settings.counterboreDepth * factor, digits),
+    tapDepth: round(settings.tapDepth * factor, digits),
+  };
 }
 
 export function convertManufacturingSettings(settings: ManufacturingSettings, nextUnit: Unit): ManufacturingSettings {
@@ -71,10 +104,21 @@ function collarRise(params: ToolParams, assumption: AssumptionSet) {
   return radialRun * tanDeg(angle);
 }
 
-function buildSpindle(params: ToolParams, assumption: AssumptionSet): SpindleModel {
+function buildSpindle(params: ToolParams, assumption: AssumptionSet, baseSettings: SpindleBaseSettings): SpindleModel {
   const d2 = spindleTipDiameter(params, assumption);
   const rise = collarRise(params, assumption);
   const shoulderY = -(params.f - rise);
+
+  const minimumWall = 0.125 * (params.a > 5 ? MM_PER_INCH : 1);
+  const base: SpindleBaseSettings = {
+    ...baseSettings,
+    height: Math.max(baseSettings.height, 1.5 * (params.a > 5 ? MM_PER_INCH : 1)),
+    extensionDiameter: Math.max(baseSettings.extensionDiameter, params.a),
+    extensionLength: Math.max(baseSettings.extensionLength, minimumWall * 2),
+    size: Math.max(baseSettings.size, params.a + minimumWall * 2, Math.max(baseSettings.extensionDiameter, params.a) + minimumWall * 2),
+    counterboreDepth: Math.min(baseSettings.counterboreDepth, Math.max(baseSettings.height - minimumWall, minimumWall)),
+    tapDepth: Math.min(baseSettings.tapDepth, Math.max(baseSettings.extensionLength - minimumWall, minimumWall)),
+  };
 
   return {
     tubeDiameter: params.a,
@@ -84,6 +128,7 @@ function buildSpindle(params: ToolParams, assumption: AssumptionSet): SpindleMod
     tipDiameter: d2,
     totalLength: params.c + params.f,
     collarRise: rise,
+    base,
     points: [
       [params.a / 2, 0],
       [params.a / 2, shoulderY],
@@ -212,9 +257,10 @@ export function buildToolModel(
   params: ToolParams,
   assumption: AssumptionSet = baselineAssumption,
   manufacturing: ManufacturingSettings = defaultManufacturingSettings("in"),
+  spindleBase: SpindleBaseSettings = defaultSpindleBaseSettings(params.a > 5 ? "mm" : "in"),
 ): ToolModel {
   const headLength = params.a * HEAD_RATIO;
-  const spindle = buildSpindle(params, assumption);
+  const spindle = buildSpindle(params, assumption, spindleBase);
   const d2 = spindle.tipDiameter;
   const h = Math.max(2, Math.round(params.h));
   const hci = h > 1 ? (params.d - d2) / (h - 1) : 0;
@@ -267,7 +313,7 @@ export function buildToolModel(
     );
   }
 
-  return { params, assumption, manufacturing, headLength, spindle, rammers };
+  return { params, assumption, manufacturing, spindleBase: spindle.base, headLength, spindle, rammers };
 }
 
 export function formatDimension(value: number, unit: Unit) {

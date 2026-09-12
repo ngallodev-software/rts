@@ -23,6 +23,7 @@ from .model import (
     ExportBundle,
     ManufacturingSettings,
     RammerModel,
+    SpindleBaseSettings,
     SpindleModel,
     ToolModel,
     ToolParams,
@@ -707,6 +708,7 @@ def _scale_points(points: Iterable[tuple[float, float]], factor: float) -> list[
 
 
 def _scaled_spindle(spindle: SpindleModel, factor: float) -> SpindleModel:
+    base = spindle.base
     return SpindleModel(
         tube_diameter=spindle.tube_diameter * factor,
         collar_height=spindle.collar_height * factor,
@@ -715,6 +717,19 @@ def _scaled_spindle(spindle: SpindleModel, factor: float) -> SpindleModel:
         tip_diameter=spindle.tip_diameter * factor,
         total_length=spindle.total_length * factor,
         collar_rise=spindle.collar_rise * factor,
+        base=SpindleBaseSettings(
+            enabled=base.enabled,
+            shape=base.shape,
+            size=base.size * factor,
+            height=base.height * factor,
+            extension_diameter=base.extension_diameter * factor,
+            extension_length=base.extension_length * factor,
+            fastener_thread=base.fastener_thread,
+            clearance_hole_diameter=base.clearance_hole_diameter * factor,
+            counterbore_diameter=base.counterbore_diameter * factor,
+            counterbore_depth=base.counterbore_depth * factor,
+            tap_depth=base.tap_depth * factor,
+        ),
         points=_scale_points(spindle.points, factor),
     )
 
@@ -812,6 +827,33 @@ def _draw_spindle(
         _add_profile_lines(msp, points)
     else:
         _add_profile(msp, points)
+    base_top_y = origin_y - spindle.total_length
+    base_bottom_y = base_top_y - spindle.base.height
+    base_left = origin_x - spindle.base.size / 2
+    base_right = origin_x + spindle.base.size / 2
+    base_profile = [(base_left, base_top_y), (base_right, base_top_y), (base_right, base_bottom_y), (base_left, base_bottom_y)]
+    extension_left = origin_x - spindle.base.extension_diameter / 2
+    extension_right = origin_x + spindle.base.extension_diameter / 2
+    extension_bottom_y = base_top_y - spindle.base.extension_length
+    clearance_left = origin_x - spindle.base.clearance_hole_diameter / 2
+    clearance_right = origin_x + spindle.base.clearance_hole_diameter / 2
+    counter_left = origin_x - spindle.base.counterbore_diameter / 2
+    counter_right = origin_x + spindle.base.counterbore_diameter / 2
+    counter_top_y = base_bottom_y + spindle.base.counterbore_depth
+    if spindle.base.enabled:
+        if compatibility_mode:
+            _add_profile_lines(msp, base_profile + [base_profile[0]])
+        else:
+            _add_profile(msp, base_profile)
+        hidden = {"layer": LAYER_HIDDEN, "linetype": "HIDDEN"}
+        for x in (extension_left, extension_right):
+            msp.add_line((x, base_top_y), (x, extension_bottom_y), dxfattribs=hidden)
+        for x in (clearance_left, clearance_right):
+            msp.add_line((x, extension_bottom_y), (x, base_bottom_y), dxfattribs=hidden)
+        for x in (counter_left, counter_right):
+            msp.add_line((x, base_bottom_y), (x, counter_top_y), dxfattribs=hidden)
+        msp.add_line((counter_left, counter_top_y), (clearance_left, counter_top_y), dxfattribs=hidden)
+        msp.add_line((clearance_right, counter_top_y), (counter_right, counter_top_y), dxfattribs=hidden)
     min_x, max_x, min_y, max_y = _part_bounds(points)
     if not compatibility_mode:
         _add_centerline(msp, origin_x, max_y + 0.35, min_y - 0.35)
@@ -860,6 +902,22 @@ def _draw_spindle(
             (max_x, collar_taper_end_y),
             (min_x - 0.25, (root_y + collar_taper_end_y) / 2),
             angle=90,
+        )
+
+    if spindle.base.enabled:
+        _render_linear_dim(msp, (base_left, base_bottom_y), (base_right, base_bottom_y), (origin_x, base_bottom_y - 0.45), angle=0)
+        _render_linear_dim(msp, (base_right, base_top_y), (base_right, base_bottom_y), (base_right + 0.55, (base_top_y + base_bottom_y) / 2), angle=90)
+        _add_leader_callout(
+            msp,
+            f"LOCATING EXTENSION {_format_diameter_measurement(spindle.base.extension_diameter, unit)} X {_format_measurement(spindle.base.extension_length, unit)}",
+            (extension_right, base_top_y - spindle.base.extension_length / 2),
+            (base_right + 1.25, base_top_y - 0.15),
+        )
+        _add_leader_callout(
+            msp,
+            f"{spindle.base.fastener_thread} TAPPED BLIND HOLE, DEPTH {_format_measurement(spindle.base.tap_depth, unit)}",
+            (origin_x, extension_bottom_y),
+            (base_right + 1.25, base_bottom_y + 0.35),
         )
 
     _add_leader_callout(
@@ -1061,6 +1119,28 @@ def _draw_spindle_pdf(
     raw_points = _spindle_outline_points(spindle)
     points = [(origin_x + x, origin_y - y) for x, y in raw_points]
     sheet.polyline(points, closed=True)
+    base_top_y = origin_y - spindle.total_length
+    base_bottom_y = base_top_y - spindle.base.height
+    base_left = origin_x - spindle.base.size / 2
+    base_right = origin_x + spindle.base.size / 2
+    extension_left = origin_x - spindle.base.extension_diameter / 2
+    extension_right = origin_x + spindle.base.extension_diameter / 2
+    extension_bottom_y = base_top_y - spindle.base.extension_length
+    clearance_left = origin_x - spindle.base.clearance_hole_diameter / 2
+    clearance_right = origin_x + spindle.base.clearance_hole_diameter / 2
+    counter_left = origin_x - spindle.base.counterbore_diameter / 2
+    counter_right = origin_x + spindle.base.counterbore_diameter / 2
+    counter_top_y = base_bottom_y + spindle.base.counterbore_depth
+    if spindle.base.enabled:
+        sheet.polyline([(base_left, base_top_y), (base_right, base_top_y), (base_right, base_bottom_y), (base_left, base_bottom_y)], closed=True)
+        for x in (extension_left, extension_right):
+            sheet.line((x, base_top_y), (x, extension_bottom_y), dash=(6.0, 3.0))
+        for x in (clearance_left, clearance_right):
+            sheet.line((x, extension_bottom_y), (x, base_bottom_y), dash=(6.0, 3.0))
+        for x in (counter_left, counter_right):
+            sheet.line((x, base_bottom_y), (x, counter_top_y), dash=(6.0, 3.0))
+        sheet.line((counter_left, counter_top_y), (clearance_left, counter_top_y), dash=(6.0, 3.0))
+        sheet.line((clearance_right, counter_top_y), (counter_right, counter_top_y), dash=(6.0, 3.0))
     min_x, max_x, min_y, max_y = _part_bounds(points)
     sheet.line((origin_x, max_y + 0.35), (origin_x, min_y - 0.35), dash=(6.0, 3.0))
     if include_titles:
@@ -1094,6 +1174,22 @@ def _draw_spindle_pdf(
             (max_x, collar_taper_end_y),
             (min_x - 0.25, (root_y + collar_taper_end_y) / 2),
             angle=90,
+        )
+
+    if spindle.base.enabled:
+        _pdf_render_linear_dim(sheet, (base_left, base_bottom_y), (base_right, base_bottom_y), (origin_x, base_bottom_y - 0.45), angle=0)
+        _pdf_render_linear_dim(sheet, (base_right, base_top_y), (base_right, base_bottom_y), (base_right + 0.55, (base_top_y + base_bottom_y) / 2), angle=90)
+        _pdf_add_leader_callout(
+            sheet,
+            f"LOCATING EXTENSION {_format_diameter_measurement(spindle.base.extension_diameter, unit, pdf=True)} X {_format_measurement(spindle.base.extension_length, unit)}",
+            (extension_right, base_top_y - spindle.base.extension_length / 2),
+            (base_right + 1.25, base_top_y - 0.15),
+        )
+        _pdf_add_leader_callout(
+            sheet,
+            f"{spindle.base.fastener_thread} TAPPED BLIND HOLE, DEPTH {_format_measurement(spindle.base.tap_depth, unit)}",
+            (origin_x, extension_bottom_y),
+            (base_right + 1.25, base_bottom_y + 0.35),
         )
 
     _pdf_add_leader_callout(
@@ -1131,12 +1227,21 @@ def _draw_spindle_pdf(
     if not include_notes:
         return
 
+    base_notes = (
+        [
+            f"{spindle.base.shape.upper()} ALUMINUM BASE {_format_measurement(spindle.base.size, unit)} X {_format_measurement(spindle.base.height, unit)} HIGH",
+            f"UNDERSIDE COUNTERBORE {_format_diameter_measurement(spindle.base.counterbore_diameter, unit, pdf=True)} X {_format_measurement(spindle.base.counterbore_depth, unit)} DEEP; CLEARANCE HOLE {_format_diameter_measurement(spindle.base.clearance_hole_diameter, unit, pdf=True)}",
+        ]
+        if spindle.base.enabled
+        else []
+    )
     notes = [
         "PART 1 - SPINDLE / CORE FORMER",
         f"COLLAR HEIGHT {_format_measurement(spindle.collar_height, unit)}",
         f"SHOULDER AXIAL LENGTH {_format_measurement(spindle.collar_rise, unit)}",
         f"SPINDLE LENGTH {_format_measurement(spindle.spindle_length, unit)}",
         f"OVERALL LENGTH {_format_measurement(spindle.total_length, unit)}",
+        *base_notes,
         f"SPINDLE SURFACES: POLISH TO {_format_surface_finish(manufacturing.spindle_finish_ra, unit)} OR BETTER",
         "REMOVE BURRS; BREAK SHARP EDGES 0.005 in MAX" if unit == "in" else "REMOVE BURRS; BREAK SHARP EDGES 0.13 mm MAX",
         "SPINDLE SHOWN TIP UP / COLLAR BASE DOWN",
@@ -1463,6 +1568,7 @@ def _write_combined_pdf(path: Path, model: ToolModel, preset_label: str, unit: s
             unit,
             model.manufacturing,
         )
+
         parts.append((rammer.label, rammer_sheet))
 
     overview_sheet = _PdfSheet(unit)
@@ -1482,8 +1588,8 @@ def _write_combined_pdf(path: Path, model: ToolModel, preset_label: str, unit: s
         False,
     )
     overview_sheet.text(
-        (0.0, -model.spindle.total_length - a * 1.25),
-        "Spindle",
+        (0.0, -model.spindle.total_length - (model.spindle.base.height if model.spindle.base.enabled else 0.0) - a * 1.25),
+        "Spindle and mounting base" if model.spindle.base.enabled else "Spindle",
         height=TITLE_TEXT_HEIGHT,
         align="center",
     )
@@ -1558,10 +1664,46 @@ def _build_spindle_solid(spindle: SpindleModel) -> cq.Workplane:
         .loft(combine=True)
     )
     segments.append(shaft)
+    if spindle.base.enabled:
+        extension = (
+            cq.Workplane("XY")
+            .workplane(offset=-spindle.base.extension_length)
+            .circle(spindle.base.extension_diameter / 2)
+            .extrude(spindle.base.extension_length)
+        )
+        segments.append(extension)
     result = segments[0]
     for segment in segments[1:]:
         result = result.union(segment)
-    return result
+    if not spindle.base.enabled:
+        return result
+    tap_drills = {"#10-24": 0.1495, "1/4-20": 0.201, "5/16-18": 0.257, "3/8-16": 0.3125}
+    scale = MM_PER_INCH if spindle.tube_diameter > 5 else 1.0
+    tap_diameter = tap_drills.get(spindle.base.fastener_thread, 0.201) * scale
+    tapped_blind_hole = (
+        cq.Workplane("XY")
+        .workplane(offset=-spindle.base.extension_length)
+        .circle(tap_diameter / 2)
+        .extrude(min(spindle.base.tap_depth, spindle.base.extension_length + spindle.collar_height))
+    )
+    return result.cut(tapped_blind_hole)
+
+
+def _build_spindle_base_solid(spindle: SpindleModel) -> cq.Workplane:
+    base = spindle.base
+    if base.shape == "round":
+        body = cq.Workplane("XY").circle(base.size / 2).extrude(base.height)
+    else:
+        body = cq.Workplane("XY").rect(base.size, base.size).extrude(base.height)
+    locating_bore = (
+        cq.Workplane("XY")
+        .workplane(offset=base.height - base.extension_length)
+        .circle(base.extension_diameter / 2)
+        .extrude(base.extension_length + 0.001)
+    )
+    clearance = cq.Workplane("XY").circle(base.clearance_hole_diameter / 2).extrude(base.height)
+    counterbore = cq.Workplane("XY").circle(base.counterbore_diameter / 2).extrude(base.counterbore_depth)
+    return body.cut(locating_bore).cut(clearance).cut(counterbore)
 
 
 def _cut_v_groove(body: cq.Workplane, outer_diameter: float, groove_z: float, groove_depth: float) -> cq.Workplane:
@@ -1719,22 +1861,60 @@ def _openscad_body(model: ToolModel) -> str:
             f"translate([{format_value((index + 1) * (model.params.a * 1.8))} * unit_scale, 0, 0]) {module_name}();"
         )
 
+    base = spindle.base
+    tap_drills = {"#10-24": 0.1495, "1/4-20": 0.201, "5/16-18": 0.257, "3/8-16": 0.3125}
+    tap_diameter = tap_drills.get(base.fastener_thread, 0.201) * (MM_PER_INCH if model.params.a > 5 else 1.0)
+    extension_line = (
+        f"    translate([0, 0, -{format_value(base.extension_length)} * unit_scale]) cylinder(h={format_value(base.extension_length)} * unit_scale, r={format_value(base.extension_diameter / 2)} * unit_scale, $fn=128);"
+        if base.enabled
+        else ""
+    )
+    tap_line = (
+        f"   translate([0, 0, -{format_value(base.extension_length)} * unit_scale]) cylinder(h={format_value(min(base.tap_depth, base.extension_length + spindle.collar_height))} * unit_scale, r={format_value(tap_diameter / 2)} * unit_scale, $fn=96);"
+        if base.enabled
+        else ""
+    )
+    base_primitive = (
+        f"cylinder(h={format_value(base.height)} * unit_scale, r={format_value(base.size / 2)} * unit_scale, $fn=128);"
+        if base.shape == "round"
+        else f"translate([-{format_value(base.size / 2)} * unit_scale, -{format_value(base.size / 2)} * unit_scale, 0]) cube([{format_value(base.size)} * unit_scale, {format_value(base.size)} * unit_scale, {format_value(base.height)} * unit_scale]);"
+    )
+    module_blocks.append(
+        "\n".join(
+            [
+                "module spindle_mounting_base() {",
+                "  difference() {",
+                f"    {base_primitive}",
+                f"    cylinder(h={format_value(base.height + 0.01)} * unit_scale, r={format_value(base.clearance_hole_diameter / 2)} * unit_scale, $fn=96);",
+                f"    cylinder(h={format_value(base.counterbore_depth)} * unit_scale, r={format_value(base.counterbore_diameter / 2)} * unit_scale, $fn=96);",
+                f"    translate([0, 0, {format_value(base.height - base.extension_length)} * unit_scale]) cylinder(h={format_value(base.extension_length + 0.01)} * unit_scale, r={format_value(base.extension_diameter / 2)} * unit_scale, $fn=128);",
+                "  }",
+                "}",
+            ]
+        )
+    )
     spindle_block = "\n".join(
         [
             "module spindle() {",
-            "  union() {",
+            "  difference() {",
+            "   union() {",
+            extension_line,
             f"    cylinder(h={format_value(max(spindle.collar_height - spindle.collar_rise, 0.0))} * unit_scale, r={format_value(spindle.tube_diameter / 2)} * unit_scale, $fn=128);",
             f"    translate([0, 0, {format_value(max(spindle.collar_height - spindle.collar_rise, 0.0))} * unit_scale])",
             f"      cylinder(h={format_value(spindle.collar_rise)} * unit_scale, r1={format_value(spindle.tube_diameter / 2)} * unit_scale, r2={format_value(spindle.root_diameter / 2)} * unit_scale, $fn=128);",
             f"    translate([0, 0, {format_value(spindle.collar_height)} * unit_scale])",
             f"      cylinder(h={format_value(spindle.spindle_length)} * unit_scale, r1={format_value(spindle.root_diameter / 2)} * unit_scale, r2={format_value(spindle.tip_diameter / 2)} * unit_scale, $fn=128);",
+            "   }",
+            tap_line,
             "  }",
             "}",
         ]
     )
     module_blocks.append(spindle_block)
     placement_blocks.insert(0, "spindle();")
-    return "\n\n".join(module_blocks + placement_blocks)
+    if base.enabled:
+        placement_blocks.insert(1, f"translate([-{format_value(model.params.a * 2.0)} * unit_scale, 0, 0]) spindle_mounting_base();")
+    return "\n\n".join(module_blocks + placement_blocks).replace("\n\n\n", "\n\n")
 
 
 def _write_openscad(path: Path, model: ToolModel, preset: PresetDefinition | None, assumption: AssumptionSet, unit: str) -> None:
@@ -1996,7 +2176,10 @@ def _write_solid_exports(
     solids_dir = ensure_directory(output_dir / "solids")
     separate_steps: list[str] = []
     separate_stls: list[str] = []
-    solids: list[tuple[str, cq.Workplane]] = [("spindle", _build_spindle_solid(model.spindle))]
+    spindle_name = "spindle-with-locating-extension" if model.spindle.base.enabled else "spindle"
+    solids: list[tuple[str, cq.Workplane]] = [(spindle_name, _build_spindle_solid(model.spindle))]
+    if model.spindle.base.enabled:
+        solids.append(("spindle-mounting-base", _build_spindle_base_solid(model.spindle)))
 
     for rammer in model.rammers:
         solids.append((slugify(rammer.key), _build_rammer_solid(rammer, assumption)))
@@ -2041,6 +2224,7 @@ def _write_manifest(
         "preset": preset.key if preset else "custom",
         "assumption": asdict(assumption),
         "manufacturing": asdict(model.manufacturing),
+        "spindle_base": asdict(model.spindle_base),
         "params": asdict(params),
         "derived": {
             "head_length": model.head_length,
@@ -2069,6 +2253,7 @@ def export_tooling_set(
     unit: str = "in",
     preset: PresetDefinition | None = None,
     manufacturing: ManufacturingSettings | None = None,
+    spindle_base: SpindleBaseSettings | None = None,
     include_illustrative_tube: bool = False,
     artifact_key: str | None = None,
 ) -> ExportBundle:
@@ -2078,7 +2263,12 @@ def export_tooling_set(
 
     build_all = artifact_key is None
     output_dir = ensure_directory(output_dir)
-    model = build_tool_model(params, assumption, manufacturing or default_manufacturing_settings("mm" if unit == "mm" else "in"))
+    model = build_tool_model(
+        params,
+        assumption,
+        manufacturing or default_manufacturing_settings("mm" if unit == "mm" else "in"),
+        spindle_base,
+    )
     preset_label = preset.label if preset else "Custom"
 
     combined_dxf = ""
@@ -2123,6 +2313,7 @@ def export_tooling_set(
             params=model.params,
             assumption=model.assumption,
             manufacturing=model.manufacturing,
+            spindle_base=_scaled_spindle(model.spindle, scale).base,
             head_length=model.head_length * scale,
             spindle=_scaled_spindle(model.spindle, scale),
             rammers=[_scaled_rammer(rammer, scale) for rammer in model.rammers],

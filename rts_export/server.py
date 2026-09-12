@@ -14,7 +14,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from .exporters import export_tooling_set
-from .model import ManufacturingSettings, ToolParams, assumption_by_key, default_manufacturing_settings
+from .model import (
+    ManufacturingSettings,
+    SpindleBaseSettings,
+    ToolParams,
+    assumption_by_key,
+    default_manufacturing_settings,
+    default_spindle_base_settings,
+)
 from .presets import get_preset
 
 
@@ -96,6 +103,25 @@ def _manufacturing_from_payload(payload: dict, unit: str) -> ManufacturingSettin
     )
 
 
+def _spindle_base_from_payload(payload: dict, unit: str) -> SpindleBaseSettings:
+    raw = payload.get("spindleBase")
+    if not isinstance(raw, dict):
+        return default_spindle_base_settings("mm" if unit == "mm" else "in")
+    return SpindleBaseSettings(
+        enabled=bool(raw.get("enabled", False)),
+        shape="round" if raw.get("shape") == "round" else "square",
+        size=float(raw["size"]),
+        height=float(raw["height"]),
+        extension_diameter=float(raw["extensionDiameter"]),
+        extension_length=float(raw["extensionLength"]),
+        fastener_thread=str(raw["fastenerThread"]),
+        clearance_hole_diameter=float(raw["clearanceHoleDiameter"]),
+        counterbore_diameter=float(raw["counterboreDiameter"]),
+        counterbore_depth=float(raw["counterboreDepth"]),
+        tap_depth=float(raw["tapDepth"]),
+    )
+
+
 def _add_file(zip_file: zipfile.ZipFile, source: str | Path, arcname: str | None = None) -> None:
     path = Path(source)
     zip_file.write(path, arcname or path.as_posix().split("/")[-1])
@@ -121,6 +147,7 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
     assumption_key = str(payload.get("assumptionKey", "baseline"))
     params = _params_from_payload(payload)
     manufacturing = _manufacturing_from_payload(payload, unit)
+    spindle_base = _spindle_base_from_payload(payload, unit)
     include_illustrative_tube = bool(payload.get("includeIllustrativeTube", False))
     assumption = assumption_by_key(assumption_key)
     preset = None if preset_key == "custom" else get_preset(preset_key)
@@ -135,6 +162,7 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
             unit=unit,
             preset=preset,
             manufacturing=manufacturing,
+            spindle_base=spindle_base,
             include_illustrative_tube=include_illustrative_tube,
             artifact_key=artifact_key,
         )

@@ -11,7 +11,7 @@ from unittest.mock import patch
 from rts_export.exporters import export_tooling_set
 from rts_export.model import BASELINE_ASSUMPTION
 from rts_export.presets import get_preset
-from rts_export.server import _EXPORT_CACHE, _build_zip, _run_export_job
+from rts_export.server import _EXPORT_CACHE, _build_zip, _run_export_job, _spindle_base_from_payload
 
 
 class ExportServerLifecycleTests(unittest.TestCase):
@@ -20,6 +20,28 @@ class ExportServerLifecycleTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         _EXPORT_CACHE.clear()
+
+    def test_spindle_base_payload_is_parsed(self) -> None:
+        base = _spindle_base_from_payload(
+            {
+                "spindleBase": {
+                    "enabled": True,
+                    "shape": "round",
+                    "size": 1.5,
+                    "height": 2.0,
+                    "extensionDiameter": 1.0,
+                    "extensionLength": 0.625,
+                    "fastenerThread": "5/16-18",
+                    "clearanceHoleDiameter": 0.332,
+                    "counterboreDiameter": 0.5,
+                    "counterboreDepth": 0.3,
+                    "tapDepth": 0.45,
+                }
+            },
+            "in",
+        )
+        self.assertEqual((base.enabled, base.shape, base.fastener_thread), (True, "round", "5/16-18"))
+        self.assertEqual((base.size, base.extension_length), (1.5, 0.625))
 
     def test_back_to_back_exports_both_complete(self) -> None:
         with patch("rts_export.server._build_zip", side_effect=[("manifest-json.zip", b"one"), ("annotated-pdf.zip", b"two")]):

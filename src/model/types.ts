@@ -23,6 +23,20 @@ export type ManufacturingSettings = {
   rammerBoreFinishRa: number;
 };
 
+export type SpindleBaseSettings = {
+  enabled: boolean;
+  shape: "round" | "square";
+  size: number;
+  height: number;
+  extensionDiameter: number;
+  extensionLength: number;
+  fastenerThread: "#10-24" | "1/4-20" | "5/16-18" | "3/8-16";
+  clearanceHoleDiameter: number;
+  counterboreDiameter: number;
+  counterboreDepth: number;
+  tapDepth: number;
+};
+
 export type FieldKey = keyof ToolParams;
 
 export type FieldMeta = {
@@ -60,6 +74,7 @@ export type SpindleModel = {
   tipDiameter: number;
   totalLength: number;
   collarRise: number;
+  base: SpindleBaseSettings;
   points: [number, number][];
 };
 
@@ -84,6 +99,7 @@ export type ToolModel = {
   params: ToolParams;
   assumption: AssumptionSet;
   manufacturing: ManufacturingSettings;
+  spindleBase: SpindleBaseSettings;
   headLength: number;
   spindle: SpindleModel;
   rammers: RammerModel[];

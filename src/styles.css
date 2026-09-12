@@ -486,6 +486,50 @@ button, input, select, textarea { font: inherit; }
   color: #555;
 }
 
+.historical-player-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.print-options-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.print-options-dialog {
+  width: min(430px, 100%);
+  padding: 18px;
+  border: 1px solid #777;
+  background: #fff;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
+}
+
+.print-options-dialog h3,
+.print-options-dialog p { margin: 0; }
+.print-options-dialog p { margin-top: 5px; font-size: 12px; color: #374151; }
+.print-option-list { display: grid; gap: 8px; margin-top: 16px; }
+.print-option {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #999;
+  background: #f7f7f7;
+  color: #111;
+  text-align: left;
+  cursor: pointer;
+}
+.print-option:hover,
+.print-option:focus-visible { border-color: #111; background: #fff; }
+.print-option span { font-size: 12px; color: #374151; }
+.print-options-cancel { margin-top: 12px; }
+
 .historical-player-shell {
   width: 100%;
   min-height: 720px;
@@ -614,4 +658,75 @@ button, input, select, textarea { font: inherit; }
 .theme-dark .historical-header-card h2 a:hover,
 .theme-dark .historical-header-card h2 a:focus-visible {
   color: #e2b84f;
+}
+
+.theme-dark .print-options-dialog { border-color: #41506d; background: #10182b; }
+.theme-dark .print-options-dialog p,
+.theme-dark .print-option span { color: #aebbd0; }
+.theme-dark .print-option { border-color: #41506d; background: #17233a; color: #e7edf7; }
+.theme-dark .print-option:hover,
+.theme-dark .print-option:focus-visible { border-color: #e2b84f; background: #1e2b45; }
+
+@media print {
+  @page { size: landscape; margin: 0.25in; }
+
+  .historical-layout.print-swf-drawing,
+  .historical-layout.print-swf-full {
+    display: block;
+    padding: 0;
+    background: #fff;
+  }
+
+  body:has(.print-swf-drawing) .app-header,
+  body:has(.print-swf-full) .app-header,
+  .print-swf-drawing .historical-header-card,
+  .print-swf-full .historical-header-card,
+  .print-swf-drawing .historical-player-heading,
+  .print-swf-full .historical-player-heading,
+  .print-swf-drawing .print-options-backdrop,
+  .print-swf-full .print-options-backdrop {
+    display: none !important;
+  }
+
+  .print-swf-drawing .historical-player-card,
+  .print-swf-full .historical-player-card {
+    padding: 0;
+    border: 0;
+    background: #fff;
+  }
+
+  .print-swf-drawing .historical-player-shell,
+  .print-swf-full .historical-player-shell {
+    min-height: 0;
+    height: auto;
+    border: 0;
+    background: #fff;
+  }
+
+  .print-swf-full .historical-player-shell {
+    width: 100%;
+    aspect-ratio: 1140 / 720;
+  }
+
+  .print-swf-drawing .historical-player-shell {
+    width: 100%;
+    aspect-ratio: 980 / 720;
+    overflow: hidden;
+  }
+
+  .print-swf-full .historical-player-shell object,
+  .print-swf-full .historical-player-shell embed,
+  .print-swf-full .historical-player-shell ruffle-object,
+  .print-swf-full .historical-player-shell ruffle-player {
+    width: 100%;
+    height: 100%;
+  }
+
+  .print-swf-drawing .historical-player-shell object,
+  .print-swf-drawing .historical-player-shell embed,
+  .print-swf-drawing .historical-player-shell ruffle-object,
+  .print-swf-drawing .historical-player-shell ruffle-player {
+    width: calc(100% * 1140 / 980);
+    height: 100%;
+  }
 }

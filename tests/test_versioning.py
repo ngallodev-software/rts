@@ -23,8 +23,8 @@ class VersionManifestTests(unittest.TestCase):
 
     def test_annotated_dxf_layout_release_is_versioned(self) -> None:
         manifest = load_version_manifest()
-        self.assertEqual(manifest["release"], "1.1.0")
-        self.assertEqual(manifest["components"]["dxf_annotated"]["version"], "1.1.0")
+        self.assertEqual(manifest["release"], "1.2.0")
+        self.assertEqual(manifest["components"]["dxf_annotated"]["version"], "1.2.0")
 
 
 if __name__ == "__main__":

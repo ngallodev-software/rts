@@ -1,9 +1,9 @@
-import { type ChangeEvent, type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, type CSSProperties, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useState } from "react";
 import { baselineAssumption } from "./model/assumptions";
 import { fieldMeta } from "./model/fields";
-import { buildToolModel, convertManufacturingSettings, convertParams, defaultManufacturingSettings, formatDimension, spindleTipUpPoints } from "./model/geometry";
+import { buildToolModel, convertManufacturingSettings, convertParams, convertSpindleBaseSettings, defaultManufacturingSettings, defaultSpindleBaseSettings, formatDimension, spindleTipUpPoints } from "./model/geometry";
 import { defaultPresetKey, getPreset, presets } from "./model/presets";
-import type { AssumptionSet, FieldKey, ManufacturingSettings, RammerModel, ToolModel, ToolParams, Unit } from "./model/types";
+import type { AssumptionSet, FieldKey, ManufacturingSettings, RammerModel, SpindleBaseSettings, ToolModel, ToolParams, Unit } from "./model/types";
 
 type ViewMode = "designer" | "exports" | "historical";
 type Theme = "light" | "dark";
@@ -168,7 +168,8 @@ function computeLayout(model: ToolModel) {
 
   const lastX = leftX + orderedRammers.length * spacing;
   const width = lastX + rightMargin;
-  const height = Math.max(spindleTopY + model.spindle.totalLength, topY + maxRammerLength) + Math.max(a * 1.65, unitFloor(a, 0.95));
+  const spindleRenderedHeight = model.spindle.totalLength + (model.spindle.base.enabled ? model.spindle.base.height : 0);
+  const height = Math.max(spindleTopY + spindleRenderedHeight, topY + maxRammerLength) + Math.max(a * 1.65, unitFloor(a, 0.95));
   return { parts, topY, width, height };
 }
 
@@ -289,10 +290,28 @@ function ToolingSheet({
           const collarTopY = part.topY + spindle.totalLength - spindle.collarHeight;
           const collarTaperStartY = part.topY + spindle.totalLength - Math.max(spindle.collarHeight - spindle.collarRise, 0);
           const collarBottomY = part.topY + spindle.totalLength;
+          const baseBottomY = collarBottomY + (spindle.base.enabled ? spindle.base.height : 0);
+          const baseHalf = spindle.base.size / 2;
+          const extensionHalf = spindle.base.extensionDiameter / 2;
+          const clearanceHalf = spindle.base.clearanceHoleDiameter / 2;
+          const counterboreHalf = spindle.base.counterboreDiameter / 2;
           return (
             <g key={part.key}>
+              {spindle.base.enabled ? (
+                <>
+                  <rect x={part.centerX - baseHalf} y={collarBottomY} width={spindle.base.size} height={spindle.base.height} className="rts-profile" />
+                  <g className="rts-hidden">
+                    <line x1={part.centerX - extensionHalf} y1={collarBottomY} x2={part.centerX - extensionHalf} y2={collarBottomY + spindle.base.extensionLength} />
+                    <line x1={part.centerX + extensionHalf} y1={collarBottomY} x2={part.centerX + extensionHalf} y2={collarBottomY + spindle.base.extensionLength} />
+                    <line x1={part.centerX - clearanceHalf} y1={collarBottomY + spindle.base.extensionLength} x2={part.centerX - clearanceHalf} y2={baseBottomY} />
+                    <line x1={part.centerX + clearanceHalf} y1={collarBottomY + spindle.base.extensionLength} x2={part.centerX + clearanceHalf} y2={baseBottomY} />
+                    <line x1={part.centerX - counterboreHalf} y1={baseBottomY - spindle.base.counterboreDepth} x2={part.centerX - counterboreHalf} y2={baseBottomY} />
+                    <line x1={part.centerX + counterboreHalf} y1={baseBottomY - spindle.base.counterboreDepth} x2={part.centerX + counterboreHalf} y2={baseBottomY} />
+                  </g>
+                </>
+              ) : null}
               <path d={spindlePathData(model, part.centerX, part.topY)} className="rts-profile" />
-              <line x1={part.centerX} y1={part.topY - a * 0.35} x2={part.centerX} y2={collarBottomY + a * 0.35} className="rts-centerline" />
+              <line x1={part.centerX} y1={part.topY - a * 0.35} x2={part.centerX} y2={baseBottomY + a * 0.35} className="rts-centerline" />
               {showDimensions ? (
                 <>
                   <DimensionVertical x={part.centerX + a * 0.95} y1={tipY} y2={rootY} label={formatDrawingLength(spindle.spindleLength, unit)} />
@@ -306,10 +325,17 @@ function ToolingSheet({
                   <Leader x1={part.centerX - spindle.tubeDiameter / 2} y1={collarBottomY - spindle.collarHeight * 0.5} x2={part.centerX - a * 1.7} y2={collarBottomY + a * 0.55} label={`collar ${formatDrawingLength(spindle.tubeDiameter, unit)}`} anchor="end" />
                   <Leader x1={part.centerX + spindle.rootDiameter / 2} y1={rootY + a * 0.15} x2={part.centerX + a * 1.35} y2={rootY - a * 0.35} label={`${formatDrawingNumber(model.params.e, unit)}° side`} />
                   <Leader x1={part.centerX + spindle.tubeDiameter / 2} y1={collarTopY} x2={part.centerX + a * 1.35} y2={collarBottomY + a * 0.48} label={`${formatDrawingNumber(model.params.g, unit)}° collar`} />
+                  {spindle.base.enabled ? (
+                    <>
+                      <DimensionHorizontal x1={part.centerX - baseHalf} x2={part.centerX + baseHalf} y={baseBottomY + a * 0.42} label={`${spindle.base.shape === "round" ? "Ø" : ""}${formatDrawingLength(spindle.base.size, unit)}`} />
+                      <DimensionVertical x={part.centerX + baseHalf + a * 0.45} y1={collarBottomY} y2={baseBottomY} label={formatDrawingLength(spindle.base.height, unit)} />
+                      <Leader x1={part.centerX + extensionHalf} y1={collarBottomY + spindle.base.extensionLength * 0.5} x2={part.centerX + baseHalf + a * 0.75} y2={collarBottomY + spindle.base.height * 0.35} label={`extension Ø${formatDrawingLength(spindle.base.extensionDiameter, unit)}`} />
+                    </>
+                  ) : null}
                 </>
               ) : null}
-              <text x={part.centerX} y={collarBottomY + a * 1.25} textAnchor="middle" className="rts-label">
-                Spindle
+              <text x={part.centerX} y={baseBottomY + a * 1.05} textAnchor="middle" className="rts-label">
+                {spindle.base.enabled ? `Spindle and ${spindle.base.shape} base` : "Spindle"}
               </text>
             </g>
           );
@@ -371,6 +397,7 @@ async function requestExportArchive(payload: {
   params: ToolParams;
   assumptionKey: string;
   manufacturing: ManufacturingSettings;
+  spindleBase: SpindleBaseSettings;
   includeIllustrativeTube: boolean;
 }) {
   const response = await fetch(`${import.meta.env.BASE_URL}api/export`, {
@@ -400,6 +427,8 @@ function DesignerView({
   setUnit,
   manufacturing,
   setManufacturing,
+  spindleBase,
+  setSpindleBase,
   showIllustrativeTube,
   setShowIllustrativeTube,
 }: {
@@ -411,13 +440,15 @@ function DesignerView({
   setUnit: (value: Unit) => void;
   manufacturing: ManufacturingSettings;
   setManufacturing: (value: ManufacturingSettings) => void;
+  spindleBase: SpindleBaseSettings;
+  setSpindleBase: (value: SpindleBaseSettings) => void;
   showIllustrativeTube: boolean;
   setShowIllustrativeTube: (value: boolean) => void;
 }) {
   const [showDimensions, setShowDimensions] = useState(true);
   const [activeHelper, setActiveHelper] = useState<{ key: FieldKey; top: number; left: number } | null>(null);
   const assumption = baselineAssumption;
-  const model = useMemo(() => buildToolModel(params, assumption, manufacturing), [params, assumption, manufacturing]);
+  const model = useMemo(() => buildToolModel(params, assumption, manufacturing, spindleBase), [params, assumption, manufacturing, spindleBase]);
   const isCustom = presetKey === "custom";
 
   const setField = (key: FieldKey, value: number) => {
@@ -441,6 +472,10 @@ function DesignerView({
       next = Math.max(next, 0.1);
     }
     setManufacturing({ ...manufacturing, [key]: next });
+  };
+
+  const setBaseField = (key: keyof SpindleBaseSettings, value: number | string) => {
+    setSpindleBase({ ...spindleBase, [key]: value });
   };
 
   const showHelper = (key: FieldKey, element: HTMLLabelElement) => {
@@ -499,6 +534,7 @@ function DesignerView({
                 if (unit !== "in") {
                   setParams(convertParams(params, "in"));
                   setManufacturing(convertManufacturingSettings(manufacturing, "in"));
+                  setSpindleBase(convertSpindleBaseSettings(spindleBase, "in"));
                   setUnit("in");
                 }
               }}
@@ -511,6 +547,7 @@ function DesignerView({
                 if (unit !== "mm") {
                   setParams(convertParams(params, "mm"));
                   setManufacturing(convertManufacturingSettings(manufacturing, "mm"));
+                  setSpindleBase(convertSpindleBaseSettings(spindleBase, "mm"));
                   setUnit("mm");
                 }
               }}
@@ -572,6 +609,50 @@ function DesignerView({
           ))}
         </div>
 
+        <label className="toggle-row">
+          <input
+            type="checkbox"
+            checked={spindleBase.enabled}
+            onChange={(event) => setSpindleBase({ ...spindleBase, enabled: event.target.checked })}
+          />
+          <span>Include spindle mounting base</span>
+        </label>
+        <details className="manufacturing-settings">
+          <summary>Spindle mounting base</summary>
+          <p className="settings-help">Base size grows automatically to preserve at least {formatDrawingLength(unit === "mm" ? 3.175 : 0.125, unit)} of wall around the locating extension.</p>
+          <label className="field compact-field">
+            <span>Base shape</span>
+            <select disabled={!spindleBase.enabled} value={spindleBase.shape} onChange={(event) => setBaseField("shape", event.target.value)}>
+              <option value="square">Square</option>
+              <option value="round">Round</option>
+            </select>
+          </label>
+          {([
+            ["size", spindleBase.shape === "square" ? "Base side width" : "Base diameter"],
+            ["height", "Base height"],
+            ["extensionDiameter", "Locating extension diameter"],
+            ["extensionLength", "Locating extension length"],
+            ["clearanceHoleDiameter", "Fastener clearance hole"],
+            ["counterboreDiameter", "Counterbore diameter"],
+            ["counterboreDepth", "Counterbore depth"],
+            ["tapDepth", "Blind tap depth"],
+          ] as [keyof SpindleBaseSettings, string][]).map(([key, label]) => (
+            <label className="field compact-field" key={key}>
+              <span>{label} ({unit})</span>
+              <input disabled={!spindleBase.enabled} type="number" min={0} step={unit === "mm" ? 0.1 : 0.01} value={spindleBase[key] as number} onChange={(event) => setBaseField(key, Math.max(Number(event.target.value), 0))} />
+            </label>
+          ))}
+          <label className="field compact-field">
+            <span>Blind tapped thread</span>
+            <select disabled={!spindleBase.enabled} value={spindleBase.fastenerThread} onChange={(event) => setBaseField("fastenerThread", event.target.value)}>
+              <option value="1/4-20">1/4-20 UNC</option>
+              <option value="5/16-18">5/16-18 UNC</option>
+              <option value="3/8-16">3/8-16 UNC</option>
+            </select>
+          </label>
+          <p className="clearance-check">{spindleBase.enabled ? `Effective base: ${formatDrawingLength(model.spindle.base.size, unit)} ${model.spindle.base.shape} × ${formatDrawingLength(model.spindle.base.height, unit)} high` : "Mounting base is not included in previews or exports."}</p>
+        </details>
+
         <details className="manufacturing-settings">
           <summary>Manufacturing tolerances</summary>
           <p className="settings-help">Bores use a positive allowance and spindle diameters a negative allowance, preserving at least the selected diametral clearance.</p>
@@ -611,8 +692,8 @@ function DesignerView({
   );
 }
 
-function ExportsView({ presetKey, params, unit, manufacturing, showIllustrativeTube }: { presetKey: string; params: ToolParams; unit: Unit; manufacturing: ManufacturingSettings; showIllustrativeTube: boolean }) {
-  const model = useMemo(() => buildToolModel(params, baselineAssumption, manufacturing), [params, manufacturing]);
+function ExportsView({ presetKey, params, unit, manufacturing, spindleBase, showIllustrativeTube }: { presetKey: string; params: ToolParams; unit: Unit; manufacturing: ManufacturingSettings; spindleBase: SpindleBaseSettings; showIllustrativeTube: boolean }) {
+  const model = useMemo(() => buildToolModel(params, baselineAssumption, manufacturing, spindleBase), [params, manufacturing, spindleBase]);
   const [exportError, setExportError] = useState<string | null>(null);
   const [activeArtifact, setActiveArtifact] = useState<ArtifactKey | null>(null);
 
@@ -631,6 +712,7 @@ function ExportsView({ presetKey, params, unit, manufacturing, showIllustrativeT
         params: model.params,
         assumptionKey: model.assumption.key,
         manufacturing,
+        spindleBase,
         includeIllustrativeTube: showIllustrativeTube,
       });
     } catch (error) {
@@ -704,9 +786,48 @@ function ExportsView({ presetKey, params, unit, manufacturing, showIllustrativeT
 function HistoricalToolsView() {
   const swfUrl = `${import.meta.env.BASE_URL}historical/rockettoolsketcher.swf`;
   const exeUrl = `${import.meta.env.BASE_URL}historical/rockettoolsketcher.exe`;
+  const [showPrintOptions, setShowPrintOptions] = useState(false);
+  const [printMode, setPrintMode] = useState<"drawing" | "full" | null>(null);
+
+  useEffect(() => {
+    if (!printMode) return;
+
+    const finishPrinting = () => setPrintMode(null);
+    window.addEventListener("afterprint", finishPrinting, { once: true });
+    const firstFrame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => window.print());
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.removeEventListener("afterprint", finishPrinting);
+    };
+  }, [printMode]);
+
+  const printSwf = (mode: "drawing" | "full") => {
+    setShowPrintOptions(false);
+    setPrintMode(mode);
+  };
+
+  const handleSwfClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const scale = Math.min(bounds.width / 1140, bounds.height / 720);
+    const stageLeft = bounds.left + (bounds.width - 1140 * scale) / 2;
+    const stageTop = bounds.top + (bounds.height - 720 * scale) / 2;
+    const stageX = (event.clientX - stageLeft) / scale;
+    const stageY = (event.clientY - stageTop) / scale;
+
+    // Ruffle does not implement the legacy Flash print command. Catch clicks on
+    // the original SWF's Print button and hand them to the browser print flow.
+    if (stageX >= 1055 && stageX <= 1125 && stageY >= 620 && stageY <= 665) {
+      event.preventDefault();
+      event.stopPropagation();
+      setShowPrintOptions(true);
+    }
+  };
 
   return (
-    <main className="historical-layout">
+    <main className={`historical-layout${printMode ? ` print-swf-${printMode}` : ""}`}>
       <section className="historical-header-card">
         <p className="sheet-kicker">Historical tools</p>
         <h2>
@@ -718,7 +839,7 @@ function HistoricalToolsView() {
           These archived formats are preserved for reference and are no longer supported. Use the current Designer and Exports pages for maintained tooling geometry and manufacturing files.
         </p>
         <div className="historical-actions">
-          <a className="button active" href={exeUrl} download="rockettoolsketcher-original-windows.exe">
+          <a className="button" href={exeUrl} download="rockettoolsketcher-original-windows.exe">
             Download original Windows EXE
           </a>
           <a className="button" href={swfUrl} download="rockettoolsketcher-original.swf">
@@ -736,9 +857,12 @@ function HistoricalToolsView() {
             <h3>Interactive Flash archive</h3>
             <p>Compatibility playback supplied by Ruffle; some original Flash behavior may differ.</p>
           </div>
-          <span>rockettoolsketcher.swf</span>
+          <div className="historical-player-actions">
+            <button className="button" onClick={() => setShowPrintOptions(true)}>Print…</button>
+            <span>rockettoolsketcher.swf</span>
+          </div>
         </div>
-        <div className="historical-player-shell">
+        <div className="historical-player-shell" onClickCapture={handleSwfClick}>
           <object data={swfUrl} type="application/x-shockwave-flash" aria-label="Original Rocket Tool Sketcher Flash application">
             <param name="movie" value={swfUrl} />
             <embed src={swfUrl} type="application/x-shockwave-flash" />
@@ -746,6 +870,26 @@ function HistoricalToolsView() {
           </object>
         </div>
       </section>
+
+      {showPrintOptions ? (
+        <div className="print-options-backdrop" role="presentation" onMouseDown={() => setShowPrintOptions(false)}>
+          <section className="print-options-dialog" role="dialog" aria-modal="true" aria-labelledby="print-options-title" onMouseDown={(event) => event.stopPropagation()}>
+            <h3 id="print-options-title">Print Rocket Tool Sketcher</h3>
+            <p>Choose how much of the original Flash page to print.</p>
+            <div className="print-option-list">
+              <button className="print-option" onClick={() => printSwf("drawing")}>
+                <strong>Drawing only</strong>
+                <span>Title, materials, author, and the rocket visual</span>
+              </button>
+              <button className="print-option" onClick={() => printSwf("full")}>
+                <strong>Whole SWF page</strong>
+                <span>Drawing plus the complete controls sidebar</span>
+              </button>
+            </div>
+            <button className="button print-options-cancel" onClick={() => setShowPrintOptions(false)}>Cancel</button>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -757,6 +901,7 @@ function App() {
   const [unit, setUnit] = useState<Unit>("in");
   const [params, setParams] = useState<ToolParams>(makeDefaultParams());
   const [manufacturing, setManufacturing] = useState<ManufacturingSettings>(() => defaultManufacturingSettings("in"));
+  const [spindleBase, setSpindleBase] = useState<SpindleBaseSettings>(() => defaultSpindleBaseSettings("in"));
   const [showIllustrativeTube, setShowIllustrativeTube] = useState(true);
 
   useEffect(() => {
@@ -793,9 +938,9 @@ function App() {
       </header>
 
       {view === "designer" ? (
-        <DesignerView presetKey={presetKey} setPresetKey={setPresetKey} params={params} setParams={setParams} unit={unit} setUnit={setUnit} manufacturing={manufacturing} setManufacturing={setManufacturing} showIllustrativeTube={showIllustrativeTube} setShowIllustrativeTube={setShowIllustrativeTube} />
+        <DesignerView presetKey={presetKey} setPresetKey={setPresetKey} params={params} setParams={setParams} unit={unit} setUnit={setUnit} manufacturing={manufacturing} setManufacturing={setManufacturing} spindleBase={spindleBase} setSpindleBase={setSpindleBase} showIllustrativeTube={showIllustrativeTube} setShowIllustrativeTube={setShowIllustrativeTube} />
       ) : view === "exports" ? (
-        <ExportsView presetKey={presetKey} params={params} unit={unit} manufacturing={manufacturing} showIllustrativeTube={showIllustrativeTube} />
+        <ExportsView presetKey={presetKey} params={params} unit={unit} manufacturing={manufacturing} spindleBase={spindleBase} showIllustrativeTube={showIllustrativeTube} />
       ) : (
         <HistoricalToolsView />
       )}

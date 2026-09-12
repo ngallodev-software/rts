@@ -9,6 +9,7 @@ Unit = Literal["in", "mm"]
 AngleConvention = Literal["from_axis", "from_face", "from_shoulder_face", "included_angle"]
 GrooveMode = Literal["line", "v-groove"]
 RammerRole = Literal["solid", "fullDepth", "progressive"]
+BaseShape = Literal["round", "square"]
 
 MM_PER_INCH = 25.4
 HEAD_RATIO = 1.5
@@ -40,6 +41,26 @@ class ManufacturingSettings:
     spindle_finish_ra: float
     rammer_od_finish_ra: float
     rammer_bore_finish_ra: float
+
+
+@dataclass(frozen=True)
+class SpindleBaseSettings:
+    enabled: bool
+    shape: BaseShape
+    size: float
+    height: float
+    extension_diameter: float
+    extension_length: float
+    fastener_thread: str
+    clearance_hole_diameter: float
+    counterbore_diameter: float
+    counterbore_depth: float
+    tap_depth: float
+
+
+def default_spindle_base_settings(unit: Unit = "in") -> SpindleBaseSettings:
+    scale = MM_PER_INCH if unit == "mm" else 1.0
+    return SpindleBaseSettings(False, "square", 1.25 * scale, 1.5 * scale, 1.0 * scale, 0.5 * scale, "1/4-20", 0.266 * scale, 0.438 * scale, 0.25 * scale, 0.375 * scale)
 
 
 def default_manufacturing_settings(unit: Unit = "in") -> ManufacturingSettings:
@@ -84,6 +105,7 @@ class SpindleModel:
     tip_diameter: float
     total_length: float
     collar_rise: float
+    base: SpindleBaseSettings
     points: list[tuple[float, float]]
 
 
@@ -110,6 +132,7 @@ class ToolModel:
     params: ToolParams
     assumption: AssumptionSet
     manufacturing: ManufacturingSettings
+    spindle_base: SpindleBaseSettings
     head_length: float
     spindle: SpindleModel
     rammers: list[RammerModel]
@@ -247,10 +270,26 @@ def collar_rise(params: ToolParams, assumption: AssumptionSet) -> float:
     return ((params.a - params.d) / 2) * tan_deg(angle)
 
 
-def build_spindle(params: ToolParams, assumption: AssumptionSet) -> SpindleModel:
+def build_spindle(params: ToolParams, assumption: AssumptionSet, base_settings: SpindleBaseSettings) -> SpindleModel:
     tip_diameter = spindle_tip_diameter(params, assumption)
     rise = collar_rise(params, assumption)
     shoulder_y = -(params.f - rise)
+    scale = MM_PER_INCH if params.a > 5 else 1.0
+    minimum_wall = 0.125 * scale
+    extension_diameter = max(base_settings.extension_diameter, params.a)
+    base = SpindleBaseSettings(
+        enabled=base_settings.enabled,
+        shape=base_settings.shape,
+        size=max(base_settings.size, params.a + 2 * minimum_wall, extension_diameter + 2 * minimum_wall),
+        height=max(base_settings.height, 1.5 * scale),
+        extension_diameter=extension_diameter,
+        extension_length=max(base_settings.extension_length, 2 * minimum_wall),
+        fastener_thread=base_settings.fastener_thread,
+        clearance_hole_diameter=base_settings.clearance_hole_diameter,
+        counterbore_diameter=base_settings.counterbore_diameter,
+        counterbore_depth=min(base_settings.counterbore_depth, max(base_settings.height - minimum_wall, minimum_wall)),
+        tap_depth=min(base_settings.tap_depth, max(base_settings.extension_length - minimum_wall, minimum_wall)),
+    )
     return SpindleModel(
         tube_diameter=params.a,
         collar_height=params.f,
@@ -259,6 +298,7 @@ def build_spindle(params: ToolParams, assumption: AssumptionSet) -> SpindleModel
         tip_diameter=tip_diameter,
         total_length=params.c + params.f,
         collar_rise=rise,
+        base=base,
         points=[
             (params.a / 2, 0),
             (params.a / 2, shoulder_y),
@@ -370,12 +410,13 @@ def build_tool_model(
     params: ToolParams,
     assumption: AssumptionSet = BASELINE_ASSUMPTION,
     manufacturing: ManufacturingSettings | None = None,
+    spindle_base: SpindleBaseSettings | None = None,
 ) -> ToolModel:
     manufacturing = manufacturing or default_manufacturing_settings("in")
     validate_manufacturing_settings(manufacturing, params.a)
     head_length = params.a * HEAD_RATIO
     switch_offset = params.a * manufacturing.switch_mark_offset_diameters
-    spindle = build_spindle(params, assumption)
+    spindle = build_spindle(params, assumption, spindle_base or default_spindle_base_settings("mm" if params.a > 5 else "in"))
     tip_diameter = spindle.tip_diameter
     rammer_count = max(2, int(round(params.h)))
     diameter_step = (params.d - tip_diameter) / (rammer_count - 1) if rammer_count > 1 else 0.0
@@ -428,6 +469,7 @@ def build_tool_model(
         params=params,
         assumption=assumption,
         manufacturing=manufacturing,
+        spindle_base=spindle.base,
         head_length=head_length,
         spindle=spindle,
         rammers=rammers,

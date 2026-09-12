@@ -9,7 +9,8 @@ export default defineConfig({
     channel: "chrome",
   },
   webServer: {
-    command: "VITE_BASE_PATH=/rts/ npm run preview -- --host 127.0.0.1 --port 4173",
+    command: "npm run dev -- --host 127.0.0.1 --port 4173",
+    env: { VITE_BASE_PATH: "/rts/" },
     port: 4173,
     reuseExistingServer: false,
   },

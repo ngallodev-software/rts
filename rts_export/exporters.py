@@ -1056,6 +1056,7 @@ def _draw_spindle_pdf(
     include_titles: bool,
     unit: str,
     manufacturing: ManufacturingSettings,
+    include_notes: bool = True,
 ) -> None:
     raw_points = _spindle_outline_points(spindle)
     points = [(origin_x + x, origin_y - y) for x, y in raw_points]
@@ -1127,6 +1128,9 @@ def _draw_spindle_pdf(
             (max_x + 1.25, root_y - 0.22),
         )
 
+    if not include_notes:
+        return
+
     notes = [
         "PART 1 - SPINDLE / CORE FORMER",
         f"COLLAR HEIGHT {_format_measurement(spindle.collar_height, unit)}",
@@ -1151,6 +1155,7 @@ def _draw_rammer_pdf(
     include_titles: bool,
     unit: str,
     manufacturing: ManufacturingSettings,
+    include_notes: bool = True,
 ) -> None:
     raw_points = _rammer_outline_points(rammer)
     points = [(origin_x + x, origin_y - y) for x, y in raw_points]
@@ -1213,6 +1218,9 @@ def _draw_rammer_pdf(
     if rammer.has_taper and rammer.taper_height > 0:
         taper_start_y = working_y + rammer.taper_height
         _pdf_render_linear_dim(sheet, (max_x, taper_start_y), (max_x, working_y), (max_x + 0.25, (taper_start_y + working_y) / 2), angle=90)
+
+    if not include_notes:
+        return
 
     notes = [
         f"OD {_format_diameter_measurement(rammer.outer_diameter, unit, pdf=True)} ±{manufacturing.general_tolerance:.3f}",
@@ -1291,7 +1299,7 @@ def _write_separate_pdf(
     return written
 
 
-def _write_combined_pdf(path: Path, model: ToolModel, preset_label: str, unit: str) -> str:
+def _write_combined_pdf_legacy(path: Path, model: ToolModel, preset_label: str, unit: str) -> str:
     page_w_pt, page_h_pt = landscape(letter)
     margin = PDF_MARGIN_PT
     gutter = 18.0
@@ -1415,6 +1423,113 @@ def _write_combined_pdf(path: Path, model: ToolModel, preset_label: str, unit: s
     page.drawString(margin, page_h_pt - 16, f"{preset_label} tooling set")
     page.drawRightString(page_w_pt - margin, 18, f"{path.stem}  page 4/4")
     page.showPage()
+    page.save()
+    return str(path)
+
+
+def _write_combined_pdf(path: Path, model: ToolModel, preset_label: str, unit: str) -> str:
+    """Write an overview followed by one consistently laid-out detail page per tool."""
+    page_w_pt, page_h_pt = landscape(letter)
+    margin = PDF_MARGIN_PT
+    content_box = (margin, margin + 8.0, page_w_pt - margin * 2, page_h_pt - margin * 2 - 28.0)
+
+    ordered_rammers = [rammer for rammer in model.rammers if rammer.role != "solid"] + [
+        rammer for rammer in model.rammers if rammer.role == "solid"
+    ]
+    parts: list[tuple[str, _PdfSheet]] = []
+    spindle_sheet = _PdfSheet(unit)
+    _draw_spindle_pdf(
+        spindle_sheet,
+        model.spindle,
+        0.0,
+        0.0,
+        f"{preset_label} - spindle",
+        True,
+        True,
+        unit,
+        model.manufacturing,
+    )
+    parts.append(("Spindle", spindle_sheet))
+    for rammer in ordered_rammers:
+        rammer_sheet = _PdfSheet(unit)
+        _draw_rammer_pdf(
+            rammer_sheet,
+            rammer,
+            0.0,
+            0.0,
+            f"{preset_label} - {rammer.label}",
+            True,
+            True,
+            unit,
+            model.manufacturing,
+        )
+        parts.append((rammer.label, rammer_sheet))
+
+    overview_sheet = _PdfSheet(unit)
+    unit_scale = 1.0 if unit == "in" else MM_PER_INCH
+    a = model.params.a
+    spacing = max(a * 5.4, 2.9 * unit_scale)
+    _draw_spindle_pdf(
+        overview_sheet,
+        model.spindle,
+        0.0,
+        0.0,
+        "",
+        True,
+        False,
+        unit,
+        model.manufacturing,
+        False,
+    )
+    overview_sheet.text(
+        (0.0, -model.spindle.total_length - a * 1.25),
+        "Spindle",
+        height=TITLE_TEXT_HEIGHT,
+        align="center",
+    )
+    for index, rammer in enumerate(ordered_rammers):
+        center_x = (index + 1) * spacing
+        _draw_rammer_pdf(
+            overview_sheet,
+            rammer,
+            center_x,
+            0.0,
+            "",
+            True,
+            False,
+            unit,
+            model.manufacturing,
+            False,
+        )
+        overview_sheet.text(
+            (center_x, -rammer.overall_length - a * 0.75),
+            rammer.label,
+            height=TITLE_TEXT_HEIGHT,
+            align="center",
+        )
+
+    page = pdf_canvas.Canvas(str(path), pagesize=landscape(letter))
+    page.setTitle(f"{preset_label} tooling set")
+    page.setAuthor("RTS exporter")
+    total_pages = len(parts) + 1
+
+    # Fit the complete web-style composition once so every tool shares the
+    # same scale and relative placement as the browser tooling sheet.
+    _draw_pdf_elements(page, _fit_elements_to_box(overview_sheet, content_box))
+    page.setFont("Helvetica-Bold", 10)
+    page.drawString(margin, page_h_pt - 18, f"{preset_label} tooling set - overview")
+    page.setFont("Helvetica", 8)
+    page.drawRightString(page_w_pt - margin, 18, f"{path.stem}  page 1/{total_pages}")
+    page.showPage()
+
+    for page_number, (label, sheet) in enumerate(parts, start=2):
+        _draw_pdf_elements(page, _fit_elements_to_box(sheet, content_box))
+        page.setFont("Helvetica-Bold", 10)
+        page.drawString(margin, page_h_pt - 18, f"{preset_label} - {label}")
+        page.setFont("Helvetica", 8)
+        page.drawRightString(page_w_pt - margin, 18, f"{path.stem}  page {page_number}/{total_pages}")
+        page.showPage()
+
     page.save()
     return str(path)
 
@@ -1870,7 +1985,14 @@ def _write_combined_dxf(
     return str(path)
 
 
-def _write_solid_exports(output_dir: Path, model: ToolModel, assumption: AssumptionSet) -> tuple[str, list[str], str, list[str]]:
+def _write_solid_exports(
+    output_dir: Path,
+    model: ToolModel,
+    assumption: AssumptionSet,
+    *,
+    write_step: bool = True,
+    write_stl: bool = True,
+) -> tuple[str, list[str], str, list[str]]:
     solids_dir = ensure_directory(output_dir / "solids")
     separate_steps: list[str] = []
     separate_stls: list[str] = []
@@ -1882,17 +2004,26 @@ def _write_solid_exports(output_dir: Path, model: ToolModel, assumption: Assumpt
     for name, solid in solids:
         step_path = solids_dir / f"{name}.step"
         stl_path = solids_dir / f"{name}.stl"
-        _write_step(step_path, solid)
-        _write_stl(stl_path, solid)
-        separate_steps.append(str(step_path))
-        separate_stls.append(str(stl_path))
+        if write_step:
+            _write_step(step_path, solid)
+            separate_steps.append(str(step_path))
+        if write_stl:
+            _write_stl(stl_path, solid)
+            separate_stls.append(str(stl_path))
 
     combined = _compound_layout(solids, model.params.a * 1.5)
     combined_step = solids_dir / "tooling-set.step"
     combined_stl = solids_dir / "tooling-set.stl"
-    _write_step(combined_step, combined)
-    _write_stl(combined_stl, combined)
-    return str(combined_step), separate_steps, str(combined_stl), separate_stls
+    if write_step:
+        _write_step(combined_step, combined)
+    if write_stl:
+        _write_stl(combined_stl, combined)
+    return (
+        str(combined_step) if write_step else "",
+        separate_steps,
+        str(combined_stl) if write_stl else "",
+        separate_stls,
+    )
 
 
 def _write_manifest(
@@ -1939,67 +2070,81 @@ def export_tooling_set(
     preset: PresetDefinition | None = None,
     manufacturing: ManufacturingSettings | None = None,
     include_illustrative_tube: bool = False,
+    artifact_key: str | None = None,
 ) -> ExportBundle:
+    valid_artifact_keys = {"review", "combined-dxf", "part-dxf", "pdf", "step", "stl", "openscad", "manifest"}
+    if artifact_key is not None and artifact_key not in valid_artifact_keys:
+        raise ValueError(f"Unknown artifact key: {artifact_key!r}")
+
+    build_all = artifact_key is None
     output_dir = ensure_directory(output_dir)
-    drawings_dir = ensure_directory(output_dir / "drawings")
     model = build_tool_model(params, assumption, manufacturing or default_manufacturing_settings("mm" if unit == "mm" else "in"))
+    preset_label = preset.label if preset else "Custom"
 
-    combined_dxf = _write_combined_dxf(
-        drawings_dir / "tooling-set.dxf",
-        model,
-        preset.label if preset else "Custom",
-        unit,
-        False,
-    )
-    combined_fusion_dxf = _write_combined_dxf(
-        drawings_dir / "tooling-set-fusion-r12.dxf",
-        model,
-        preset.label if preset else "Custom",
-        unit,
-        False,
-        "R12",
-    )
-    combined_annotated_dxf = _write_combined_dxf(
-        drawings_dir / "tooling-set-annotated.dxf",
-        model,
-        preset.label if preset else "Custom",
-        unit,
-        True,
-    )
-    combined_annotated_pdf = _write_combined_pdf(
-        drawings_dir / "tooling-set-annotated.pdf",
-        model,
-        preset.label if preset else "Custom",
-        unit,
-    )
-    separate_dxfs = _write_separate_dxf(drawings_dir, model, preset.label if preset else "Custom", unit, False)
-    separate_fusion_dxfs = _write_separate_dxf(
-        drawings_dir,
-        model,
-        preset.label if preset else "Custom",
-        unit,
-        False,
-        dxf_version="R12",
-        suffix_override="-fusion-r12",
-    )
-    separate_annotated_dxfs = _write_separate_dxf(drawings_dir, model, preset.label if preset else "Custom", unit, True)
-    separate_annotated_pdfs = _write_separate_pdf(drawings_dir, model, preset.label if preset else "Custom", unit)
+    combined_dxf = ""
+    combined_fusion_dxf = ""
+    combined_annotated_dxf = ""
+    combined_annotated_pdf = ""
+    separate_dxfs: list[str] = []
+    separate_fusion_dxfs: list[str] = []
+    separate_annotated_dxfs: list[str] = []
+    separate_annotated_pdfs: list[str] = []
+    if build_all or artifact_key in {"combined-dxf", "part-dxf", "pdf"}:
+        drawings_dir = ensure_directory(output_dir / "drawings")
+        if build_all:
+            combined_dxf = _write_combined_dxf(drawings_dir / "tooling-set.dxf", model, preset_label, unit, False)
+            combined_fusion_dxf = _write_combined_dxf(
+                drawings_dir / "tooling-set-fusion-r12.dxf", model, preset_label, unit, False, "R12"
+            )
+        if build_all or artifact_key == "combined-dxf":
+            combined_annotated_dxf = _write_combined_dxf(
+                drawings_dir / "tooling-set-annotated.dxf", model, preset_label, unit, True
+            )
+        if build_all or artifact_key in {"combined-dxf", "pdf"}:
+            combined_annotated_pdf = _write_combined_pdf(
+                drawings_dir / "tooling-set-annotated.pdf", model, preset_label, unit
+            )
+        if build_all or artifact_key == "part-dxf":
+            separate_dxfs = _write_separate_dxf(drawings_dir, model, preset_label, unit, False)
+            separate_annotated_pdfs = _write_separate_pdf(drawings_dir, model, preset_label, unit)
+        if build_all:
+            separate_fusion_dxfs = _write_separate_dxf(
+                drawings_dir, model, preset_label, unit, False, dxf_version="R12", suffix_override="-fusion-r12"
+            )
+            separate_annotated_dxfs = _write_separate_dxf(drawings_dir, model, preset_label, unit, True)
 
-    scale = _length_scale(unit)
-    scaled_model = ToolModel(
-        params=model.params,
-        assumption=model.assumption,
-        manufacturing=model.manufacturing,
-        head_length=model.head_length * scale,
-        spindle=_scaled_spindle(model.spindle, scale),
-        rammers=[_scaled_rammer(rammer, scale) for rammer in model.rammers],
-    )
-    combined_step, separate_steps, combined_stl, separate_stls = _write_solid_exports(output_dir, scaled_model, assumption)
+    combined_step = ""
+    separate_steps: list[str] = []
+    combined_stl = ""
+    separate_stls: list[str] = []
+    if build_all or artifact_key in {"step", "stl"}:
+        scale = _length_scale(unit)
+        scaled_model = ToolModel(
+            params=model.params,
+            assumption=model.assumption,
+            manufacturing=model.manufacturing,
+            head_length=model.head_length * scale,
+            spindle=_scaled_spindle(model.spindle, scale),
+            rammers=[_scaled_rammer(rammer, scale) for rammer in model.rammers],
+        )
+        combined_step, separate_steps, combined_stl, separate_stls = _write_solid_exports(
+            output_dir,
+            scaled_model,
+            assumption,
+            write_step=build_all or artifact_key == "step",
+            write_stl=build_all or artifact_key == "stl",
+        )
 
-    openscad_path = output_dir / "tooling-set.scad"
-    _write_openscad(openscad_path, model, preset, assumption, unit)
-    manifest_path = output_dir / "tooling-set.json"
-    manifest = _write_manifest(manifest_path, params, assumption, preset, unit, model, include_illustrative_tube)
+    openscad = ""
+    if build_all or artifact_key in {"review", "openscad"}:
+        openscad_path = output_dir / "tooling-set.scad"
+        _write_openscad(openscad_path, model, preset, assumption, unit)
+        openscad = str(openscad_path)
+
+    manifest = ""
+    if build_all or artifact_key in {"review", "manifest"}:
+        manifest_path = output_dir / "tooling-set.json"
+        manifest = _write_manifest(manifest_path, params, assumption, preset, unit, model, include_illustrative_tube)
     version_manifest = write_version_manifest(output_dir / "version-manifest.json")
 
     return ExportBundle(
@@ -2016,7 +2161,7 @@ def export_tooling_set(
         separate_steps=separate_steps,
         combined_stl=combined_stl,
         separate_stls=separate_stls,
-        openscad=str(openscad_path),
+        openscad=openscad,
         manifest=manifest,
         version_manifest=version_manifest,
     )

@@ -5,8 +5,9 @@ import { buildToolModel, convertManufacturingSettings, convertParams, defaultMan
 import { defaultPresetKey, getPreset, presets } from "./model/presets";
 import type { AssumptionSet, FieldKey, ManufacturingSettings, RammerModel, ToolModel, ToolParams, Unit } from "./model/types";
 
-type ViewMode = "designer" | "exports";
+type ViewMode = "designer" | "exports" | "historical";
 type Theme = "light" | "dark";
+type ArtifactKey = "review" | "combined-dxf" | "part-dxf" | "pdf" | "step" | "stl" | "openscad" | "manifest";
 
 type LayoutPart = {
   key: string;
@@ -23,7 +24,7 @@ type ExportFormat = {
   description: string;
   output: string;
   archiveName: string;
-  artifactKey: "combined-dxf" | "part-dxf" | "pdf" | "step" | "stl" | "openscad" | "manifest";
+  artifactKey: Exclude<ArtifactKey, "review">;
 };
 
 const helperImages: Record<FieldKey, { src: string; alt: string }> = {
@@ -139,35 +140,33 @@ function spindlePathData(model: ToolModel, centerX: number, topY: number) {
 
 function computeLayout(model: ToolModel) {
   const a = model.params.a;
+  const orderedRammers = [
+    ...model.rammers.filter((rammer) => rammer.role !== "solid"),
+    ...model.rammers.filter((rammer) => rammer.role === "solid"),
+  ];
   const topY = Math.max(a * 2.65, unitFloor(a, 1.7));
   const leftX = Math.max(a * 4.2, unitFloor(a, 2.2));
   const spacing = Math.max(a * 5.4, unitFloor(a, 2.9));
   const rightMargin = Math.max(a * 2.05, unitFloor(a, 1.2));
-  const maxRammerLength = Math.max(...model.rammers.map((rammer) => rammer.overallLength));
-  const solid = model.rammers[0];
-  const spindleGapBelowSolid = Math.max(a * 0.35, unitFloor(a, 0.25));
-  const spindleExtraBelowLongest = Math.max(a * 0.8, unitFloor(a, 0.45));
-  const spindleTopY = Math.max(
-    topY + solid.overallLength + spindleGapBelowSolid,
-    topY + maxRammerLength - model.spindle.totalLength + spindleExtraBelowLongest,
-  );
+  const maxRammerLength = Math.max(...orderedRammers.map((rammer) => rammer.overallLength));
+  const spindleTopY = topY;
 
   const parts: LayoutPart[] = [
     { key: "spindle", label: "Spindle", centerX: leftX, topY: spindleTopY, kind: "spindle" },
   ];
 
-  model.rammers.forEach((rammer, index) => {
+  orderedRammers.forEach((rammer, index) => {
     parts.push({
       key: rammer.key,
       label: rammer.label,
-      centerX: leftX + index * spacing,
+      centerX: leftX + (index + 1) * spacing,
       topY,
       kind: "rammer",
       rammer,
     });
   });
 
-  const lastX = leftX + (model.rammers.length - 1) * spacing;
+  const lastX = leftX + orderedRammers.length * spacing;
   const width = lastX + rightMargin;
   const height = Math.max(spindleTopY + model.spindle.totalLength, topY + maxRammerLength) + Math.max(a * 1.65, unitFloor(a, 0.95));
   return { parts, topY, width, height };
@@ -365,7 +364,7 @@ function downloadBlob(filename: string, blob: Blob) {
 }
 
 async function requestExportArchive(payload: {
-  artifactKey: "review" | "combined-dxf" | "part-dxf" | "pdf" | "step" | "stl" | "openscad" | "manifest";
+  artifactKey: ArtifactKey;
   archiveName: string;
   presetKey: string;
   unit: Unit;
@@ -615,14 +614,14 @@ function DesignerView({
 function ExportsView({ presetKey, params, unit, manufacturing, showIllustrativeTube }: { presetKey: string; params: ToolParams; unit: Unit; manufacturing: ManufacturingSettings; showIllustrativeTube: boolean }) {
   const model = useMemo(() => buildToolModel(params, baselineAssumption, manufacturing), [params, manufacturing]);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
+  const [activeArtifact, setActiveArtifact] = useState<ArtifactKey | null>(null);
 
   const downloadArtifact = async (
-    artifactKey: "review" | "combined-dxf" | "part-dxf" | "pdf" | "step" | "stl" | "openscad" | "manifest",
+    artifactKey: ArtifactKey,
     archiveName: string,
   ) => {
     setExportError(null);
-    setDownloading(true);
+    setActiveArtifact(artifactKey);
     try {
       await requestExportArchive({
         artifactKey,
@@ -638,9 +637,18 @@ function ExportsView({ presetKey, params, unit, manufacturing, showIllustrativeT
       console.error("RTS export failed", error);
       setExportError("We couldn’t prepare that export. Confirm the export service is running, then try again.");
     } finally {
-      setDownloading(false);
+      setActiveArtifact(null);
     }
   };
+
+  const activeFormat = exportFormats.find((format) => format.artifactKey === activeArtifact);
+  const progressMessage = activeFormat
+    ? `Generating ${activeFormat.name}. Other CAD downloads are temporarily disabled.`
+    : activeArtifact === "review"
+      ? "Preparing the review bundle."
+      : activeArtifact === "manifest"
+        ? "Preparing the manifest."
+        : null;
 
   return (
     <div className="exports-layout">
@@ -652,22 +660,23 @@ function ExportsView({ presetKey, params, unit, manufacturing, showIllustrativeT
           </h2>
           <p>Generate export archives from the Python tooling pipeline.</p>
           {exportError ? <p className="export-status" role="alert">{exportError}</p> : null}
+          {progressMessage ? <p className="export-progress" role="status" aria-live="polite">{progressMessage}</p> : null}
           <div className="export-actions">
-            <button className="button active" disabled={downloading} onClick={() => downloadArtifact("review", "review-bundle.zip")}>
-              {downloading ? "Preparing export…" : "Download review ZIP"}
+            <button className="button active" disabled={activeArtifact !== null} onClick={() => downloadArtifact("review", "review-bundle.zip")}>
+              {activeArtifact === "review" ? "Preparing review…" : "Download review ZIP"}
             </button>
-            <button className="button" disabled={downloading} onClick={() => downloadArtifact("manifest", "manifest-json.zip")}>
-              Manifest ZIP
+            <button className="button" disabled={activeArtifact !== null} onClick={() => downloadArtifact("manifest", "manifest-json.zip")}>
+              {activeArtifact === "manifest" ? "Preparing manifest…" : "Manifest ZIP"}
             </button>
-            <button className="button" disabled={downloading} onClick={() => downloadArtifact("openscad", "openscad.zip")}>
-              OpenSCAD ZIP
+            <button className="button" disabled={activeArtifact !== null} onClick={() => downloadArtifact("openscad", "openscad.zip")}>
+              {activeArtifact === "openscad" ? "Generating OpenSCAD…" : "OpenSCAD ZIP"}
             </button>
           </div>
         </div>
 
         <div className="export-preview-card">
           <h3>Sheet preview</h3>
-          <ToolingSheet model={model} presetKey={presetKey} unit={unit} showDimensions={false} />
+          <ToolingSheet model={model} presetKey={presetKey} unit={unit} showDimensions={true} />
         </div>
       </section>
 
@@ -681,14 +690,63 @@ function ExportsView({ presetKey, params, unit, manufacturing, showIllustrativeT
                 <span>{format.output}</span>
               </div>
               <p>{format.description}</p>
-              <button className="button" disabled={downloading} onClick={() => downloadArtifact(format.artifactKey, format.archiveName)}>
-                Download ZIP
+              <button className="button" disabled={activeArtifact !== null} onClick={() => downloadArtifact(format.artifactKey, format.archiveName)}>
+                {activeArtifact === format.artifactKey ? `Generating ${format.name}…` : "Download ZIP"}
               </button>
             </article>
           ))}
         </div>
       </aside>
     </div>
+  );
+}
+
+function HistoricalToolsView() {
+  const swfUrl = `${import.meta.env.BASE_URL}historical/rockettoolsketcher.swf`;
+  const exeUrl = `${import.meta.env.BASE_URL}historical/rockettoolsketcher.exe`;
+
+  return (
+    <main className="historical-layout">
+      <section className="historical-header-card">
+        <p className="sheet-kicker">Historical tools</p>
+        <h2>
+          <a href="https://ma.dk/rts" target="_blank" rel="noreferrer">
+            Original Rocket Tool Sketcher
+          </a>
+        </h2>
+        <p>
+          These archived formats are preserved for reference and are no longer supported. Use the current Designer and Exports pages for maintained tooling geometry and manufacturing files.
+        </p>
+        <div className="historical-actions">
+          <a className="button active" href={exeUrl} download="rockettoolsketcher-original-windows.exe">
+            Download original Windows EXE
+          </a>
+          <a className="button" href={swfUrl} download="rockettoolsketcher-original.swf">
+            Download original SWF
+          </a>
+        </div>
+        <p className="historical-warning">
+          The EXE is an archived Windows application. Only run legacy executables in an environment you trust. The embedded SWF runs through the open-source Ruffle emulator.
+        </p>
+      </section>
+
+      <section className="historical-player-card">
+        <div className="historical-player-heading">
+          <div>
+            <h3>Interactive Flash archive</h3>
+            <p>Compatibility playback supplied by Ruffle; some original Flash behavior may differ.</p>
+          </div>
+          <span>rockettoolsketcher.swf</span>
+        </div>
+        <div className="historical-player-shell">
+          <object data={swfUrl} type="application/x-shockwave-flash" aria-label="Original Rocket Tool Sketcher Flash application">
+            <param name="movie" value={swfUrl} />
+            <embed src={swfUrl} type="application/x-shockwave-flash" />
+            <p>Your browser could not start the archived Flash application. Download the SWF to preserve a local copy.</p>
+          </object>
+        </div>
+      </section>
+    </main>
   );
 }
 
@@ -720,6 +778,9 @@ function App() {
           <button className={view === "exports" ? "nav-button active" : "nav-button"} onClick={() => setView("exports")}>
             Exports
           </button>
+          <button className={view === "historical" ? "nav-button active" : "nav-button"} onClick={() => setView("historical")}>
+            Historical tools
+          </button>
           <button
             className="nav-button theme-toggle"
             type="button"
@@ -733,8 +794,10 @@ function App() {
 
       {view === "designer" ? (
         <DesignerView presetKey={presetKey} setPresetKey={setPresetKey} params={params} setParams={setParams} unit={unit} setUnit={setUnit} manufacturing={manufacturing} setManufacturing={setManufacturing} showIllustrativeTube={showIllustrativeTube} setShowIllustrativeTube={setShowIllustrativeTube} />
-      ) : (
+      ) : view === "exports" ? (
         <ExportsView presetKey={presetKey} params={params} unit={unit} manufacturing={manufacturing} showIllustrativeTube={showIllustrativeTube} />
+      ) : (
+        <HistoricalToolsView />
       )}
     </div>
   );

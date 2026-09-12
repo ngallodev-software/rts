@@ -7,6 +7,7 @@ A browser-based rebuild of the original `rockettoolsketcher.swf`, with a shared 
 - Supports a `Custom` mode with editable A-I dimensions.
 - Includes the baked-in preset g dimensions for some common device types matching the original flash app.
 - Uses one shared spindle and rammer geometry model for the browser preview and export work.
+- Preserves the original Flash and Windows tools on a clearly marked Historical Tools page, with self-hosted Ruffle playback for the SWF.
 - Generates manufacturing exports from Python:
   - combined clean as well as separate, per-part `DXF` files and / or annotated `DXF` files
   - combined and individual `STEP` and `STL` 3D models

@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import argparse
+from collections import OrderedDict
+import hashlib
 import io
 import json
+import os
 import tempfile
+import threading
+import time
 import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -11,6 +16,51 @@ from pathlib import Path
 from .exporters import export_tooling_set
 from .model import ManufacturingSettings, ToolParams, assumption_by_key, default_manufacturing_settings
 from .presets import get_preset
+
+
+# CadQuery/OpenCascade performs work in native code and is not safe to run in
+# parallel inside one process.  ThreadingHTTPServer is still useful here because
+# it lets health checks and OPTIONS requests complete while an export is being
+# built, but actual export jobs must be serialized.  Without this guard two
+# quick requests can drive the process out of memory or terminate it in native
+# code, making the service appear to disappear after the first download.
+_EXPORT_LOCK = threading.Lock()
+_DEFAULT_CACHE_TTL_SECONDS = 15 * 60
+_DEFAULT_CACHE_MAX_BYTES = 128 * 1024 * 1024
+_EXPORT_CACHE: OrderedDict[str, tuple[float, str, bytes]] = OrderedDict()
+
+
+def _cache_ttl_seconds() -> int:
+    try:
+        return max(0, int(os.environ.get("RTS_EXPORT_CACHE_TTL_SECONDS", _DEFAULT_CACHE_TTL_SECONDS)))
+    except ValueError:
+        return _DEFAULT_CACHE_TTL_SECONDS
+
+
+def _cache_key(payload: dict) -> str:
+    cache_payload = {key: value for key, value in payload.items() if key != "archiveName"}
+    canonical = json.dumps(cache_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _cache_max_bytes() -> int:
+    try:
+        return max(0, int(os.environ.get("RTS_EXPORT_CACHE_MAX_BYTES", _DEFAULT_CACHE_MAX_BYTES)))
+    except ValueError:
+        return _DEFAULT_CACHE_MAX_BYTES
+
+
+def _remove_expired_cache_entries(now: float) -> None:
+    for key, (expires_at, _archive_name, _archive_bytes) in list(_EXPORT_CACHE.items()):
+        if expires_at <= now:
+            del _EXPORT_CACHE[key]
+
+
+def _trim_cache_to_size(max_bytes: int) -> None:
+    total_bytes = sum(len(entry[2]) for entry in _EXPORT_CACHE.values())
+    while _EXPORT_CACHE and total_bytes > max_bytes:
+        _key, (_expires_at, _archive_name, archive_bytes) = _EXPORT_CACHE.popitem(last=False)
+        total_bytes -= len(archive_bytes)
 
 
 def _params_from_payload(payload: dict) -> ToolParams:
@@ -51,6 +101,16 @@ def _add_file(zip_file: zipfile.ZipFile, source: str | Path, arcname: str | None
     zip_file.write(path, arcname or path.as_posix().split("/")[-1])
 
 
+def _filename_slug(value: str) -> str:
+    slug = "".join(character.lower() if character.isalnum() else "-" for character in value)
+    return "-".join(part for part in slug.split("-") if part) or "custom"
+
+
+def _design_file_prefix(preset_key: str, params: ToolParams, unit: str) -> str:
+    diameter = f"{params.a:.6f}".rstrip("0").rstrip(".")
+    return f"{_filename_slug(preset_key)}-{diameter}{'mm' if unit == 'mm' else 'in'}"
+
+
 def _build_zip(payload: dict) -> tuple[str, bytes]:
     artifact_key = payload.get("artifactKey")
     if artifact_key not in {"review", "combined-dxf", "part-dxf", "pdf", "step", "stl", "openscad", "manifest"}:
@@ -64,6 +124,7 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
     include_illustrative_tube = bool(payload.get("includeIllustrativeTube", False))
     assumption = assumption_by_key(assumption_key)
     preset = None if preset_key == "custom" else get_preset(preset_key)
+    file_prefix = _design_file_prefix(preset_key, params, unit)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         output_dir = Path(temp_dir) / "export"
@@ -75,16 +136,17 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
             preset=preset,
             manufacturing=manufacturing,
             include_illustrative_tube=include_illustrative_tube,
+            artifact_key=artifact_key,
         )
 
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            _add_file(archive, bundle.version_manifest, "version-manifest.json")
+            _add_file(archive, bundle.version_manifest, f"{file_prefix}-version-manifest.json")
             if artifact_key == "review":
-                _add_file(archive, bundle.manifest, "tooling-set.json")
-                _add_file(archive, bundle.openscad, "tooling-set.scad")
+                _add_file(archive, bundle.manifest, f"{file_prefix}-tooling-set.json")
+                _add_file(archive, bundle.openscad, f"{file_prefix}-tooling-set.scad")
                 archive.writestr(
-                    "README.txt",
+                    f"{file_prefix}-README.txt",
                     "\n".join(
                         [
                             "Rocket Tooling Designer review bundle",
@@ -95,39 +157,60 @@ def _build_zip(payload: dict) -> tuple[str, bytes]:
                     ),
                 )
             elif artifact_key == "manifest":
-                _add_file(archive, bundle.manifest, "tooling-set.json")
+                _add_file(archive, bundle.manifest, f"{file_prefix}-tooling-manifest.json")
             elif artifact_key == "openscad":
-                _add_file(archive, bundle.openscad, "tooling-set.scad")
+                _add_file(archive, bundle.openscad, f"{file_prefix}-tooling-set.scad")
             elif artifact_key == "combined-dxf":
-                _add_file(archive, bundle.combined_annotated_dxf, "drawings/tooling-set-annotated.dxf")
-                _add_file(archive, bundle.combined_annotated_pdf, "drawings/tooling-set-annotated.pdf")
+                _add_file(archive, bundle.combined_annotated_dxf, f"drawings/{file_prefix}-combined-annotated-drawing.dxf")
+                _add_file(archive, bundle.combined_annotated_pdf, f"drawings/{file_prefix}-combined-annotated-drawing.pdf")
             elif artifact_key == "part-dxf":
                 for path in bundle.separate_dxfs:
-                    _add_file(archive, path, Path(path).relative_to(output_dir).as_posix())
+                    _add_file(archive, path, f"drawings/{file_prefix}-{Path(path).name}")
                 for path in bundle.separate_annotated_pdfs:
-                    _add_file(archive, path, Path(path).relative_to(output_dir).as_posix())
+                    _add_file(archive, path, f"drawings/{file_prefix}-{Path(path).name}")
             elif artifact_key == "pdf":
-                _add_file(archive, bundle.combined_annotated_pdf, "drawings/tooling-set-annotated.pdf")
+                _add_file(archive, bundle.combined_annotated_pdf, f"drawings/{file_prefix}-annotated-drawing.pdf")
             elif artifact_key == "step":
-                _add_file(archive, bundle.combined_step, "solids/tooling-set.step")
+                _add_file(archive, bundle.combined_step, f"solids/{file_prefix}-combined-tooling.step")
                 for path in bundle.separate_steps:
-                    _add_file(archive, path, Path(path).relative_to(output_dir).as_posix())
+                    _add_file(archive, path, f"solids/{file_prefix}-{Path(path).name}")
             elif artifact_key == "stl":
-                _add_file(archive, bundle.combined_stl, "solids/tooling-set.stl")
+                _add_file(archive, bundle.combined_stl, f"solids/{file_prefix}-combined-tooling.stl")
                 for path in bundle.separate_stls:
-                    _add_file(archive, path, Path(path).relative_to(output_dir).as_posix())
+                    _add_file(archive, path, f"solids/{file_prefix}-{Path(path).name}")
 
-        archive_name = {
+        archive_suffix = {
             "review": "review-bundle.zip",
-            "manifest": "manifest-json.zip",
-            "openscad": "openscad.zip",
-            "combined-dxf": "combined-dxf.zip",
-            "part-dxf": "per-part-dxf.zip",
-            "pdf": "annotated-pdf.zip",
+            "manifest": "tooling-manifest.zip",
+            "openscad": "openscad-model.zip",
+            "combined-dxf": "combined-dxf-drawing.zip",
+            "part-dxf": "per-part-dxf-drawings.zip",
+            "pdf": "annotated-pdf-drawing.zip",
             "step": "step-solids.zip",
             "stl": "stl-preview-solids.zip",
         }[artifact_key]
+        archive_name = f"{file_prefix}-{archive_suffix}"
         return archive_name, buffer.getvalue()
+
+
+def _run_export_job(payload: dict) -> tuple[str, bytes]:
+    """Return a cached archive or run one native CAD export at a time."""
+    with _EXPORT_LOCK:
+        ttl_seconds = _cache_ttl_seconds()
+        now = time.time()
+        cache_key = _cache_key(payload)
+        if ttl_seconds > 0:
+            _remove_expired_cache_entries(now)
+            cached = _EXPORT_CACHE.get(cache_key)
+            if cached is not None:
+                _expires_at, archive_name, archive_bytes = cached
+                return archive_name, archive_bytes
+
+        archive_name, archive_bytes = _build_zip(payload)
+        if ttl_seconds > 0:
+            _EXPORT_CACHE[cache_key] = (now + ttl_seconds, archive_name, archive_bytes)
+            _trim_cache_to_size(_cache_max_bytes())
+        return archive_name, archive_bytes
 
 
 class ExportHandler(BaseHTTPRequestHandler):
@@ -164,7 +247,7 @@ class ExportHandler(BaseHTTPRequestHandler):
         try:
             content_length = int(self.headers.get("Content-Length", "0"))
             payload = json.loads(self.rfile.read(content_length) or b"{}")
-            archive_name, archive_bytes = _build_zip(payload)
+            archive_name, archive_bytes = _run_export_job(payload)
         except Exception as exc:  # pragma: no cover - network boundary
             self._send_json_error(400, str(exc))
             return
@@ -174,6 +257,7 @@ class ExportHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Disposition", f'attachment; filename="{archive_name}"')
         self.send_header("Content-Length", str(len(archive_bytes)))
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Expose-Headers", "Content-Disposition")
         self.end_headers()
         self.wfile.write(archive_bytes)
 

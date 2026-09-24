@@ -7,6 +7,13 @@ browser, backed by one shared geometry model for preview and CAD generation.
 **Case study:** https://ngallodev-software.uk/projects/rts  
 **Export verification:** [docs/export-verification-checklist.md](docs/export-verification-checklist.md)
 
+## Quick summary
+
+- **What it is:** a browser tool for designing rocket spindle/rammer tooling from tube dimensions and manufacturing tolerances.
+- **What it produces:** an annotated preview plus DXF, STEP, STL, OpenSCAD, PDF, and JSON manufacturing/review artifacts.
+- **Key design choice:** the browser and export service share the same validated geometry model, so preview and generated artifacts are derived from one source of truth.
+- **Deployment boundary:** interactive design stays in the web UI; CAD generation runs behind the application boundary in the internal Python export service.
+
 Rocket Tool Sketcher rebuilds the original `rockettoolsketcher.swf` as a
 browser application while preserving the underlying tooling formulas and making
 the same validated geometry available to manufacturing exports. The browser

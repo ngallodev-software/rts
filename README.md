@@ -7,7 +7,7 @@ browser, backed by one shared geometry model for preview and CAD generation.
 **Case study:** https://ngallodev-software.uk/projects/rts  
 **Export verification:** [docs/export-verification-checklist.md](docs/export-verification-checklist.md)
 
-## Quick summary
+## Summary
 
 - **What it is:** a browser tool for designing rocket spindle/rammer tooling from tube dimensions and manufacturing tolerances.
 - **What it produces:** an annotated preview plus DXF, STEP, STL, OpenSCAD, PDF, and JSON manufacturing/review artifacts.

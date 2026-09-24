@@ -1,6 +1,33 @@
-# Rocket Tool Sketcher Modern
+# Rocket Tool Sketcher
 
-A browser-based rebuild of the original `rockettoolsketcher.swf`, with a shared geometry model that now also drives CAD export generation.
+Parametric rocket-tooling drawings and manufacturing export bundles in the
+browser, backed by one shared geometry model for preview and CAD generation.
+
+**Live:** https://ngallodev-software.uk/rts/  
+**Case study:** https://ngallodev-software.uk/projects/rts  
+**Export verification:** [docs/export-verification-checklist.md](docs/export-verification-checklist.md)
+
+Rocket Tool Sketcher rebuilds the original `rockettoolsketcher.swf` as a
+browser application while preserving the underlying tooling formulas and making
+the same validated geometry available to manufacturing exports. The browser
+handles interactive sizing and review; an internal Python service produces DXF,
+STEP, STL, OpenSCAD, PDF, and manifest artifacts.
+
+```text
+tube + tolerances
+      |
+      v
+validated shared geometry
+   |               |
+   v               v
+browser drawing   internal export service
+                      |
+                      v
+            CAD / PDF / JSON bundle
+                      |
+                      v
+               export verification
+```
 
 ## Current scope
 
@@ -79,8 +106,6 @@ python -m rts_export.cli --preset custom --output exports/custom ^
 - The default `tooling-set.dxf` is the import-friendly geometry sheet. `tooling-set-annotated.dxf` carries the dimensions and titles.
 - `STEP`, `STL`, and generated `OpenSCAD` geometry are written with CAD-interchange scaling in mind. If inputs are inches, the exported 3D geometry is scaled to millimeters.
 - The OpenSCAD output is intended to stay editable by changing the input values at the top of the file.
-
-## Project notes
 
 ## Export verification
 

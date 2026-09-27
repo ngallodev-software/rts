@@ -567,7 +567,7 @@ function DesignerView({
         <div className="tube-reference-panel">
           {showIllustrativeTube ? (
             <figure className="tube-reference-card">
-              <img src="/tube-reference.png" alt="Illustrative kraft-paper tube" />
+              <img src={`${import.meta.env.BASE_URL}tube-reference.png`} alt="Illustrative kraft-paper tube" />
               <figcaption>Tube Length {formatDrawingLength(params.b, unit)}</figcaption>
             </figure>
           ) : null}

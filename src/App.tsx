@@ -1,4 +1,4 @@
-import { type ChangeEvent, type CSSProperties, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, type CSSProperties, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { baselineAssumption } from "./model/assumptions";
 import { fieldMeta } from "./model/fields";
 import { buildToolModel, convertManufacturingSettings, convertParams, convertSpindleBaseSettings, defaultManufacturingSettings, defaultSpindleBaseSettings, formatDimension, spindleTipUpPoints } from "./model/geometry";
@@ -28,15 +28,15 @@ type ExportFormat = {
 };
 
 const helperImages: Record<FieldKey, { src: string; alt: string }> = {
-  a: { src: "/helpers/helper-a-tube-id.png", alt: "Tube I.D. helper image" },
-  b: { src: "/helpers/helper-b-tube-length.png", alt: "Tube length helper image" },
-  c: { src: "/helpers/helper-c-spindle-length.png", alt: "Spindle length helper image" },
-  d: { src: "/helpers/helper-d-spindle-width.png", alt: "Spindle width helper image" },
-  e: { src: "/helpers/helper-e-spindle-taper.png", alt: "Spindle taper helper image" },
-  f: { src: "/helpers/helper-f-collar-height.png", alt: "Collar height helper image" },
-  g: { src: "/helpers/helper-g-collar-taper.png", alt: "Collar taper helper image" },
-  h: { src: "/helpers/helper-h-number-of-rammers.png", alt: "Number of rammers helper image" },
-  i: { src: "/helpers/helper-i-a-rammer-taper.png", alt: "A rammer taper helper image" },
+  a: { src: `${import.meta.env.BASE_URL}helpers/helper-a-tube-id.png`, alt: "Tube I.D. helper image" },
+  b: { src: `${import.meta.env.BASE_URL}helpers/helper-b-tube-length.png`, alt: "Tube length helper image" },
+  c: { src: `${import.meta.env.BASE_URL}helpers/helper-c-spindle-length.png`, alt: "Spindle length helper image" },
+  d: { src: `${import.meta.env.BASE_URL}helpers/helper-d-spindle-width.png`, alt: "Spindle width helper image" },
+  e: { src: `${import.meta.env.BASE_URL}helpers/helper-e-spindle-taper.png`, alt: "Spindle taper helper image" },
+  f: { src: `${import.meta.env.BASE_URL}helpers/helper-f-collar-height.png`, alt: "Collar height helper image" },
+  g: { src: `${import.meta.env.BASE_URL}helpers/helper-g-collar-taper.png`, alt: "Collar taper helper image" },
+  h: { src: `${import.meta.env.BASE_URL}helpers/helper-h-number-of-rammers.png`, alt: "Number of rammers helper image" },
+  i: { src: `${import.meta.env.BASE_URL}helpers/helper-i-a-rammer-taper.png`, alt: "A rammer taper helper image" },
 };
 
 const exportFormats: ExportFormat[] = [
@@ -788,6 +788,22 @@ function HistoricalToolsView() {
   const exeUrl = `${import.meta.env.BASE_URL}historical/rockettoolsketcher.exe`;
   const [showPrintOptions, setShowPrintOptions] = useState(false);
   const [printMode, setPrintMode] = useState<"drawing" | "full" | null>(null);
+  const playerContainer = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = playerContainer.current;
+    const ruffle = (window as Window & {
+      RufflePlayer?: { newest: () => { createPlayer: () => HTMLElement & { ruffle: () => { load: (url: string) => Promise<void> } } } };
+    }).RufflePlayer?.newest();
+    if (!container || !ruffle) return;
+
+    const player = ruffle.createPlayer();
+    player.style.width = "100%";
+    player.style.height = "100%";
+    container.replaceChildren(player);
+    void player.ruffle().load(swfUrl);
+    return () => player.remove();
+  }, [swfUrl]);
 
   useEffect(() => {
     if (!printMode) return;
@@ -863,11 +879,7 @@ function HistoricalToolsView() {
           </div>
         </div>
         <div className="historical-player-shell" onClickCapture={handleSwfClick}>
-          <object data={swfUrl} type="application/x-shockwave-flash" aria-label="Original Rocket Tool Sketcher Flash application">
-            <param name="movie" value={swfUrl} />
-            <embed src={swfUrl} type="application/x-shockwave-flash" />
-            <p>Your browser could not start the archived Flash application. Download the SWF to preserve a local copy.</p>
-          </object>
+          <div ref={playerContainer} aria-label="Original Rocket Tool Sketcher Flash application" />
         </div>
       </section>
 

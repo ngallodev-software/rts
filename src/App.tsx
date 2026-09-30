@@ -257,13 +257,31 @@ function ToolingSheet({
   showDimensions: boolean;
   assumption?: AssumptionSet;
 }) {
+  const [readable, setReadable] = useState(true);
+  const viewport = useRef<HTMLDivElement>(null);
   const layout = computeLayout(model);
   const a = model.params.a;
+  const firstPartX = layout.parts[0].centerX / a * 100;
+  const firstPartY = layout.topY / a * 100;
   const title = presetSheetTitle(presetKey, model.params, unit, assumption);
   const dimLift = Math.max(a * 0.75, unitFloor(a, 0.36));
   const labelDrop = Math.max(a * 0.42, unitFloor(a, 0.24));
 
+  useEffect(() => {
+    if (readable && viewport.current) {
+      viewport.current.scrollLeft = Math.max(0, firstPartX - viewport.current.clientWidth / 2);
+      viewport.current.scrollTop = Math.max(0, firstPartY - 60);
+    }
+  }, [readable, firstPartX, firstPartY]);
+
   return (
+    <div className="drawing-viewer">
+      <div className="drawing-toolbar">
+        <button className={readable ? "button active" : "button"} aria-pressed={readable} onClick={() => setReadable(true)}>Readable size</button>
+        <button className={!readable ? "button active" : "button"} aria-pressed={!readable} onClick={() => setReadable(false)}>Fit whole drawing</button>
+        <span>Scroll or swipe to inspect the drawing.</span>
+      </div>
+      <div ref={viewport} className="drawing-viewport" tabIndex={0} role="region" aria-label={`${title} drawing viewer`}>
     <svg
       className="tooling-svg"
       viewBox={`0 0 ${layout.width} ${layout.height}`}
@@ -271,6 +289,7 @@ function ToolingSheet({
       aria-label={title}
       preserveAspectRatio="xMidYMin meet"
       style={{
+        "--rts-sheet-min-width": readable ? `${layout.width / a * 100}px` : "0px",
         "--rts-dim-text-size": `${a * 0.16}px`,
         "--rts-callout-text-size": `${a * (0.13 / 0.75)}px`,
         "--rts-sheet-title-size": `${a * 0.24}px`,
@@ -377,6 +396,8 @@ function ToolingSheet({
         );
       })}
     </svg>
+      </div>
+    </div>
   );
 }
 
@@ -799,10 +820,9 @@ function HistoricalToolsView() {
     if (!container || !ruffle) return;
 
     const player = ruffle.createPlayer();
-    player.style.width = "100%";
-    player.style.height = "100%";
     container.replaceChildren(player);
     void player.ruffle().load(swfUrl).catch((error: unknown) => {
+      if (!player.isConnected) return;
       console.error("Ruffle could not load the historical Rocket Tool Sketcher SWF", error);
       container.textContent = "The Flash archive could not be loaded. Try reloading the page or downloading the SWF.";
     });
@@ -876,14 +896,20 @@ function HistoricalToolsView() {
           <div>
             <h3>Interactive Flash archive</h3>
             <p>Compatibility playback supplied by Ruffle; some original Flash behavior may differ.</p>
+            <p>Use Drawing and Controls to move across the archive on a phone.</p>
           </div>
           <div className="historical-player-actions">
+            <button className="button" onClick={() => playerContainer.current?.parentElement?.scrollTo({ left: 0, behavior: "smooth" })}>Drawing</button>
+            <button className="button" onClick={() => {
+              const shell = playerContainer.current?.parentElement;
+              shell?.scrollTo({ left: shell.scrollWidth, behavior: "smooth" });
+            }}>Controls</button>
             <button className="button" onClick={() => setShowPrintOptions(true)}>Print…</button>
             <span>rockettoolsketcher.swf</span>
           </div>
         </div>
-        <div className="historical-player-shell" onClickCapture={handleSwfClick}>
-          <div ref={playerContainer} aria-label="Original Rocket Tool Sketcher Flash application" />
+        <div className="historical-player-shell">
+          <div ref={playerContainer} onClickCapture={handleSwfClick} aria-label="Original Rocket Tool Sketcher Flash application" />
         </div>
       </section>
 

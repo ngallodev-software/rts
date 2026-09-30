@@ -205,11 +205,23 @@ button, input, select, textarea { font: inherit; }
 .compact-field + .compact-field { margin-top: 8px; }
 .toggle-row { display: flex; gap: 5px; }
 
+.drawing-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+}
+
+.drawing-toolbar span { font-size: 12px; }
+.drawing-viewport { overflow: auto; max-height: 75vh; }
+.drawing-viewport:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
+
 .tooling-svg {
   display: block;
   width: 100%;
-  height: calc(100vh - 112px);
-  min-height: 640px;
+  min-width: var(--rts-sheet-min-width);
+  height: auto;
   background: #fff;
 }
 
@@ -339,6 +351,7 @@ button, input, select, textarea { font: inherit; }
 .export-header-card,
 .export-preview-card,
 .export-format-panel {
+  min-width: 0;
   border: 1px solid #999;
   background: #fff;
   padding: 12px;
@@ -383,8 +396,6 @@ button, input, select, textarea { font: inherit; }
 }
 
 .export-preview-card .tooling-svg {
-  height: clamp(640px, calc(100vh - 240px), 780px);
-  min-height: 0;
   border: 1px solid #ddd;
 }
 
@@ -426,6 +437,7 @@ button, input, select, textarea { font: inherit; }
 
 .historical-header-card,
 .historical-player-card {
+  min-width: 0;
   border: 1px solid #999;
   background: #fff;
   padding: 12px;
@@ -488,6 +500,7 @@ button, input, select, textarea { font: inherit; }
 
 .historical-player-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
@@ -533,10 +546,12 @@ button, input, select, textarea { font: inherit; }
 .historical-player-shell {
   width: 100%;
   min-height: 720px;
-  overflow: hidden;
+  overflow: auto;
   border: 1px solid #777;
   background: #111827;
 }
+
+.historical-player-shell > div { min-width: 1140px; }
 
 .historical-player-shell object,
 .historical-player-shell embed,
@@ -629,6 +644,9 @@ button, input, select, textarea { font: inherit; }
 .theme-dark .export-preview-card .tooling-svg { border-color: #41506d; }
 
 @media (max-width: 980px) {
+  .app-header,
+  .historical-player-heading { flex-direction: column; }
+  .hero-actions { flex-wrap: wrap; padding-top: 0; }
   .legacy-layout,
   .exports-layout {
     grid-template-columns: 1fr;
@@ -636,10 +654,6 @@ button, input, select, textarea { font: inherit; }
   .legacy-controls {
     order: -1;
     max-height: none;
-  }
-  .tooling-svg { height: 680px; }
-  .export-preview-card .tooling-svg {
-    height: clamp(600px, calc(100vh - 220px), 760px);
   }
 }
 
@@ -669,6 +683,11 @@ button, input, select, textarea { font: inherit; }
 
 @media print {
   @page { size: landscape; margin: 0.25in; }
+
+  .drawing-toolbar { display: none; }
+  .drawing-viewport { max-height: none; overflow: visible; }
+  .tooling-svg { min-width: 0; }
+  .historical-player-shell > div { min-width: 0; height: 100%; }
 
   .historical-layout.print-swf-drawing,
   .historical-layout.print-swf-full {

@@ -479,6 +479,7 @@ function DesignerView({
   };
 
   const showHelper = (key: FieldKey, element: HTMLLabelElement) => {
+    if (window.matchMedia("(hover: none), (pointer: coarse)").matches) return;
     const rect = element.getBoundingClientRect();
     setActiveHelper({
       key,
@@ -801,7 +802,10 @@ function HistoricalToolsView() {
     player.style.width = "100%";
     player.style.height = "100%";
     container.replaceChildren(player);
-    void player.ruffle().load(swfUrl);
+    void player.ruffle().load(swfUrl).catch((error: unknown) => {
+      console.error("Ruffle could not load the historical Rocket Tool Sketcher SWF", error);
+      container.textContent = "The Flash archive could not be loaded. Try reloading the page or downloading the SWF.";
+    });
     return () => player.remove();
   }, [swfUrl]);
 

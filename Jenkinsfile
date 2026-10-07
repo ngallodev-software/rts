@@ -65,6 +65,9 @@ pipeline {
                 script {
                     def commit = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     sh '''
+                        exec 9>/tmp/portfolio-production-deploy.lock
+                        flock -x 9
+                        set -eu
                         test -d "$PORTFOLIO_REPO_DIR"
                         install -d "$PORTFOLIO_REPO_DIR/public/rts"
                         rsync -a --delete dist/ "$PORTFOLIO_REPO_DIR/public/rts/"
@@ -72,10 +75,9 @@ pipeline {
                           --exclude '.git/' --exclude '.codebase-memory/' --exclude '.venv/' \
                           --exclude 'node_modules/' --exclude 'dist/' --exclude 'exports/' \
                           "$WORKSPACE/" "$PORTFOLIO_REPO_DIR/rts-export/"
+                        cd "$PORTFOLIO_REPO_DIR"
+                        docker compose --profile tunnel --profile rts up --build -d
                     '''
-                    dir("${env.PORTFOLIO_REPO_DIR}") {
-                        sh 'docker compose --profile tunnel --profile rts up --build -d'
-                    }
                     currentBuild.description = "RTS ${commit}"
                 }
             }

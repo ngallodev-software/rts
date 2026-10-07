@@ -56,7 +56,7 @@ pipeline {
 
         stage('Browser UI sanity') {
             steps {
-                sh 'npx playwright test'
+                sh 'PLAYWRIGHT_PORT=$((41000 + BUILD_NUMBER % 10000)) npx playwright test'
             }
         }
 

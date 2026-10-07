@@ -69,14 +69,10 @@ pipeline {
                         flock -x 9
                         set -eu
                         test -d "$PORTFOLIO_REPO_DIR"
-                        install -d "$PORTFOLIO_REPO_DIR/public/rts"
-                        rsync -a --delete dist/ "$PORTFOLIO_REPO_DIR/public/rts/"
-                        rsync -a --delete \
-                          --exclude '.git/' --exclude '.codebase-memory/' --exclude '.venv/' \
-                          --exclude 'node_modules/' --exclude 'dist/' --exclude 'exports/' \
-                          "$WORKSPACE/" "$PORTFOLIO_REPO_DIR/rts-export/"
                         cd "$PORTFOLIO_REPO_DIR"
-                        docker compose --profile tunnel --profile rts up --build -d
+                        docker build -f "$WORKSPACE/Dockerfile.site" -t ngallodev-software/rts-site:latest "$WORKSPACE"
+                        RTS_REPO_DIR="$WORKSPACE" docker compose --profile rts build rts-export
+                        RTS_REPO_DIR="$WORKSPACE" docker compose --profile rts up --no-deps -d rts-site rts-export
                     '''
                     currentBuild.description = "RTS ${commit}"
                 }

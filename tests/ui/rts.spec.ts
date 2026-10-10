@@ -13,6 +13,8 @@ test("designer renders and a manifest export is requested through /rts/api", asy
 
   await page.goto("/rts/");
   await expect(page.getByRole("heading", { name: "Parametric rocket tooling drawings" })).toBeVisible();
+  await expect(page.getByText(/Rocket Tool Sketcher by Nicolaj/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Rocket Tool Sketcher by Nicolaj" })).toHaveAttribute("href", "https://ma.dk/rts");
   await expect(page.getByRole("img", { name: /BP Core burner/i })).toBeVisible();
   await page.getByRole("button", { name: "Dark mode" }).click();
   await expect(page.locator(".app-shell")).toHaveClass(/theme-dark/);
@@ -32,6 +34,7 @@ test("historical SWF offers drawing-only and full-page printing", async ({ page 
   });
   await page.goto("/rts/");
   await page.getByRole("button", { name: "Historical tools" }).click();
+  await expect(page.getByText(/Original Rocket Tool Sketcher is attributed to Nicolaj/)).toBeVisible();
 
   const ruffle = page.locator("ruffle-player");
   await expect(ruffle).toBeVisible();

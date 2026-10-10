@@ -9,7 +9,7 @@ browser, backed by one shared geometry model for preview and CAD generation.
 
 ## Original-work attribution
 
-**Original Rocket Tool Sketcher:** [ma.dk/rts](https://ma.dk/rts) (historical Flash/Windows application). The original developer retains credit for the original application, its design and its tooling formulas. Rocket Tooling Designer is an independent browser/CAD adaptation, not an original invention of those formulas. The current archive does not independently verify the developer's personal name; no name is asserted without evidence.
+**Original Rocket Tool Sketcher — Nicolaj:** [original project at ma.dk/rts](https://ma.dk/rts) (historical Flash/Windows application). The archived SWF contains the project URL, a `nicolaj@ma.dk` contact, and an authoring path under `Nicolaj`, supporting credit to Nicolaj. His surname is not verified by the surviving source; this deliberately preserves the evidenced name without inventing a surname. The original design and tooling formulas are credited to their original author. Rocket Tooling Designer is an independent browser/CAD adaptation, not an original invention of those formulas.
 
 The original Flash and Windows distributions remain available in **Historical tools** for attribution and reference.
 

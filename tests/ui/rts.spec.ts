@@ -55,6 +55,23 @@ test("historical SWF offers drawing-only and full-page printing", async ({ page 
   await expect(page.locator(".historical-layout")).toHaveClass(/print-swf-full/);
 });
 
+test("one-column helper artwork stays in flow below the input instead of covering fields", async ({ page }) => {
+  await page.setViewportSize({ width: 760, height: 900 });
+  await page.goto("/rts/");
+  const fields = page.locator(".helper-field");
+  const first = fields.first();
+  await first.hover();
+  const inlineHelp = first.locator(".helper-inline");
+  await expect(inlineHelp).toBeVisible();
+  await expect(page.locator(".helper-layer")).toBeHidden();
+  const inputBox = await first.locator("input").boundingBox();
+  const helperBox = await inlineHelp.boundingBox();
+  const nextBox = await fields.nth(1).boundingBox();
+  expect(inputBox && helperBox && nextBox).toBeTruthy();
+  expect(helperBox!.y).toBeGreaterThanOrEqual(inputBox!.y + inputBox!.height);
+  expect(nextBox!.y).toBeGreaterThanOrEqual(helperBox!.y + helperBox!.height);
+});
+
 test("mobile drawings stay readable, scroll within the page, and offer a whole-sheet view", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();

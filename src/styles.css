@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 :root {
   font-family: Arial, Helvetica, sans-serif;
   color: #050505;
@@ -748,4 +750,146 @@ button, input, select, textarea { font: inherit; }
     width: calc(100% * 1140 / 980);
     height: 100%;
   }
+}
+
+
+/* Shared portfolio-site palette. The engineering drawing itself intentionally remains
+   black on white for dependable dimensions, printing and CAD review. */
+@media screen {
+  .app-shell.theme-light {
+    --rts-page: hsl(40 20% 97%);
+    --rts-card: hsl(0 0% 100%);
+    --rts-ink: hsl(222 20% 14%);
+    --rts-muted: hsl(220 8% 42%);
+    --rts-soft: hsl(36 18% 93%);
+    --rts-border: hsl(36 12% 82%);
+    --rts-accent: hsl(35 88% 40%);
+    --rts-on-accent: white;
+  }
+  .app-shell.theme-dark {
+    --rts-page: hsl(222 18% 10%);
+    --rts-card: hsl(222 16% 14%);
+    --rts-ink: hsl(36 18% 92%);
+    --rts-muted: hsl(36 7% 67%);
+    --rts-soft: hsl(222 12% 20%);
+    --rts-border: hsl(222 10% 27%);
+    --rts-accent: hsl(43 92% 61%);
+    --rts-on-accent: hsl(222 18% 10%);
+  }
+  .app-shell {
+    background: var(--rts-page);
+    color: var(--rts-ink);
+    font-family: Inter, system-ui, sans-serif;
+  }
+  .app-shell .app-header {
+    background: var(--rts-page);
+    color: var(--rts-ink);
+    border-color: var(--rts-border);
+    padding: 16px 20px;
+  }
+  .app-shell .app-header h1 { letter-spacing: -0.025em; line-height: 1.2; }
+  .app-shell .eyebrow,
+  .app-shell .sheet-kicker { color: var(--rts-accent); }
+  .app-shell .lede,
+  .app-shell .origin-credit { color: var(--rts-muted); line-height: 1.5; }
+  .app-shell .origin-credit { margin: 6px 0 0; max-width: 72ch; font-size: 12px; }
+  .app-shell .origin-credit a,
+  .app-shell .historical-header-card h2 a,
+  .app-shell .historical-header-card a:not(.button) { color: var(--rts-accent); text-underline-offset: 3px; }
+  .app-shell .hero-actions { padding-top: 3px; flex-wrap: wrap; }
+  .app-shell .nav-button,
+  .app-shell .button {
+    background: var(--rts-soft);
+    color: var(--rts-ink);
+    border: 1px solid var(--rts-border);
+    border-radius: 4px;
+    padding: 8px 11px;
+  }
+  .app-shell .nav-button:hover,
+  .app-shell .button:hover { border-color: var(--rts-accent); background: var(--rts-card); }
+  .app-shell .nav-button.active,
+  .app-shell .button.active {
+    background: var(--rts-accent);
+    color: var(--rts-on-accent);
+    border-color: var(--rts-accent);
+  }
+  .app-shell button:focus-visible,
+  .app-shell input:focus-visible,
+  .app-shell select:focus-visible,
+  .app-shell a:focus-visible {
+    outline: 2px solid var(--rts-accent);
+    outline-offset: 2px;
+  }
+  .app-shell .legacy-controls {
+    background: var(--rts-card);
+    color: var(--rts-ink);
+    border-color: var(--rts-border);
+    border-left: 1px solid var(--rts-border);
+  }
+  .app-shell .field small,
+  .app-shell .toggle-check small,
+  .app-shell .settings-help { color: var(--rts-muted); }
+  .app-shell .manufacturing-settings,
+  .app-shell .tube-reference-panel { border-color: var(--rts-border); }
+  .app-shell .field input,
+  .app-shell .field select {
+    background: var(--rts-page);
+    color: var(--rts-ink);
+    border: 1px solid var(--rts-border);
+    border-radius: 4px;
+    min-height: 34px;
+  }
+  .app-shell .sheet-strip {
+    background: var(--rts-card);
+    color: var(--rts-ink);
+    border-color: var(--rts-border);
+  }
+  .app-shell .sheet-meta { color: var(--rts-muted); }
+  .app-shell .drawing-area { border-color: var(--rts-border); }
+  .app-shell .drawing-viewport:focus-visible { outline-color: var(--rts-accent); }
+  .app-shell .export-header-card,
+  .app-shell .export-preview-card,
+  .app-shell .export-format-panel,
+  .app-shell .historical-header-card,
+  .app-shell .historical-player-card,
+  .app-shell .print-options-dialog {
+    background: var(--rts-card);
+    color: var(--rts-ink);
+    border-color: var(--rts-border);
+  }
+  .app-shell .exports-layout { background: var(--rts-page); }
+  .app-shell .format-card,
+  .app-shell .print-option {
+    background: var(--rts-soft);
+    color: var(--rts-ink);
+    border-color: var(--rts-border);
+  }
+  .app-shell .export-header-card p,
+  .app-shell .export-format-panel p,
+  .app-shell .format-card p,
+  .app-shell .format-card span,
+  .app-shell .historical-header-card > p,
+  .app-shell .historical-player-heading p,
+  .app-shell .historical-player-heading span,
+  .app-shell .print-options-dialog p,
+  .app-shell .print-option span { color: var(--rts-muted); }
+  .app-shell .helper-popover { border-color: var(--rts-accent); background: var(--rts-card); }
+  .app-shell .clearance-check { color: var(--rts-accent); }
+  .helper-inline { display: none; }
+}
+@media screen and (max-width: 980px) {
+  /* A one-column layout has no side gutter: reserve space *inside* the active
+     field instead of obscuring neighboring numeric inputs with a fixed overlay. */
+  .app-shell .helper-layer { display: none; }
+  .app-shell .helper-inline {
+    display: block;
+    width: min(200px, 100%);
+    margin-top: 8px;
+    padding: 6px;
+    border: 1px solid var(--rts-border);
+    border-radius: 4px;
+    background: var(--rts-soft);
+  }
+  .app-shell .helper-inline img { display: block; width: 100%; height: auto; }
+  .app-shell .legacy-controls { border-left: 0; border-bottom: 1px solid var(--rts-border); }
 }

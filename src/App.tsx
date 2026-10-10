@@ -881,7 +881,7 @@ function HistoricalToolsView() {
           </a>
         </h2>
         <p>
-          Credit for the original Rocket Tool Sketcher, its formulas and its Flash/Windows application belongs to its original developer, linked above at ma.dk/rts. Rocket Tooling Designer is a separate modern adaptation. These historical files are preserved for reference and are no longer supported.
+          Original Rocket Tool Sketcher is attributed to Nicolaj, whose contact and project URL are embedded in the archived Flash application. The original tooling design and formulas are his work, not part of this modern adaptation. These historical files are preserved for reference and are no longer supported.
         </p>
         <div className="historical-actions">
           <a className="button" href={exeUrl} download="rockettoolsketcher-original-windows.exe">
@@ -962,7 +962,7 @@ function App() {
           <p className="eyebrow">Rocket Tooling Designer</p>
           <h1>Parametric rocket tooling drawings</h1>
           <p className="lede">Legacy-compatible spindle and rammer tooling, based on the original Rocket Tool Sketcher formulas.</p>
-          <p className="origin-credit">Original application and formulas by the original <a href="https://ma.dk/rts" target="_blank" rel="noopener noreferrer">Rocket Tool Sketcher author</a>. This designer is an independent modern adaptation.</p>
+          <p className="origin-credit">Based on the original <a href="https://ma.dk/rts" target="_blank" rel="noopener noreferrer">Rocket Tool Sketcher by Nicolaj</a>. Rocket Tooling Designer is an independent modern adaptation.</p>
         </div>
         <div className="hero-actions">
           <button className={view === "designer" ? "nav-button active" : "nav-button"} onClick={() => setView("designer")}>

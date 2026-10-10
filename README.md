@@ -1,4 +1,4 @@
-# Rocket Tool Sketcher
+# Rocket Tooling Designer
 
 Parametric rocket-tooling drawings and manufacturing export bundles in the
 browser, backed by one shared geometry model for preview and CAD generation.
@@ -7,6 +7,12 @@ browser, backed by one shared geometry model for preview and CAD generation.
 **Case study:** https://ngallodev-software.uk/projects/rts  
 **Export verification:** [docs/export-verification-checklist.md](docs/export-verification-checklist.md)
 
+## Original-work attribution
+
+**Original Rocket Tool Sketcher:** [ma.dk/rts](https://ma.dk/rts) (historical Flash/Windows application). The original developer retains credit for the original application, its design and its tooling formulas. Rocket Tooling Designer is an independent browser/CAD adaptation, not an original invention of those formulas. The current archive does not independently verify the developer's personal name; no name is asserted without evidence.
+
+The original Flash and Windows distributions remain available in **Historical tools** for attribution and reference.
+
 ## Summary
 
 - **What it is:** a browser tool for designing rocket spindle/rammer tooling from tube dimensions and manufacturing tolerances.
@@ -14,7 +20,7 @@ browser, backed by one shared geometry model for preview and CAD generation.
 - **Key design choice:** the browser and export service share the same validated geometry model, so preview and generated artifacts are derived from one source of truth.
 - **Deployment boundary:** interactive design stays in the web UI; CAD generation runs behind the application boundary in the internal Python export service.
 
-Rocket Tool Sketcher rebuilds the original `rockettoolsketcher.swf` as a
+Rocket Tooling Designer adapts the original `rockettoolsketcher.swf` as a
 browser application while preserving the underlying tooling formulas and making
 the same validated geometry available to manufacturing exports. The browser
 handles interactive sizing and review; an internal Python service produces DXF,

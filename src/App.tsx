@@ -627,6 +627,11 @@ function DesignerView({
                 disabled={!isCustom && field.key !== "a"}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setField(field.key, Number(event.target.value))}
               />
+              {activeHelper?.key === field.key && (
+                <span className="helper-inline">
+                  <img src={helperImages[field.key].src} alt={helperImages[field.key].alt} />
+                </span>
+              )}
             </label>
           ))}
         </div>
@@ -876,7 +881,7 @@ function HistoricalToolsView() {
           </a>
         </h2>
         <p>
-          These archived formats are preserved for reference and are no longer supported. Use the current Designer and Exports pages for maintained tooling geometry and manufacturing files.
+          Credit for the original Rocket Tool Sketcher, its formulas and its Flash/Windows application belongs to its original developer, linked above at ma.dk/rts. Rocket Tooling Designer is a separate modern adaptation. These historical files are preserved for reference and are no longer supported.
         </p>
         <div className="historical-actions">
           <a className="button" href={exeUrl} download="rockettoolsketcher-original-windows.exe">
@@ -957,6 +962,7 @@ function App() {
           <p className="eyebrow">Rocket Tooling Designer</p>
           <h1>Parametric rocket tooling drawings</h1>
           <p className="lede">Legacy-compatible spindle and rammer tooling, based on the original Rocket Tool Sketcher formulas.</p>
+          <p className="origin-credit">Original application and formulas by the original <a href="https://ma.dk/rts" target="_blank" rel="noopener noreferrer">Rocket Tool Sketcher author</a>. This designer is an independent modern adaptation.</p>
         </div>
         <div className="hero-actions">
           <button className={view === "designer" ? "nav-button active" : "nav-button"} onClick={() => setView("designer")}>
